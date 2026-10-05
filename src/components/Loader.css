@@ -20,3 +20,52 @@
   height: auto;
   user-select: none;
 }
+
+/* Retro variant: BIOS boot text shown on the `/` desktop route. */
+.loader-overlay--retro {
+  justify-content: flex-start;
+  align-items: flex-start;
+  background: #0c110c;
+}
+
+.loader-boot {
+  padding: clamp(24px, 6vw, 64px);
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(18px, 2.4vw, 26px);
+  line-height: 1.35;
+  color: #8dff8d;
+  text-shadow: 0 0 6px rgba(141, 255, 141, 0.45);
+}
+
+.loader-boot p {
+  margin: 0;
+  opacity: 0;
+  animation: loader-boot-line 0.01s linear forwards;
+}
+
+.loader-boot__cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: currentColor;
+  animation: loader-boot-blink 1s steps(2, start) infinite;
+}
+
+@keyframes loader-boot-line {
+  to { opacity: 1; }
+}
+
+@keyframes loader-boot-blink {
+  to { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-boot p {
+    opacity: 1;
+    animation: none;
+  }
+
+  .loader-boot__cursor {
+    animation: none;
+  }
+}

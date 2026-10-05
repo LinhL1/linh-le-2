@@ -7,6 +7,7 @@ export function CursorEffect() {
 
   useEffect(() => {
     if (window.matchMedia('(pointer: coarse)').matches) return;
+    document.documentElement.classList.add('custom-cursor');
 
     let mouseX = 0, mouseY = 0;
     let ringX  = 0, ringY  = 0;
@@ -98,6 +99,7 @@ export function CursorEffect() {
     document.addEventListener('mouseleave', onLeave);
 
     return () => {
+      document.documentElement.classList.remove('custom-cursor');
       cancelAnimationFrame(rafId);
       observer.disconnect();
       document.removeEventListener('mousemove', onMove);

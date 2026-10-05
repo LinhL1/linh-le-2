@@ -3,6 +3,7 @@ import { useState } from "react";
 import myPhoto from "@/assets/me.jpg";
 import closedEnvelope from "@/assets/closed_envelope.png";
 import openEnvelope from "@/assets/open_envelope.png";
+import { bio, funFact, stats } from "@/data/profile";
 
 const AboutSection = () => {
   const [envelopeOpen, setEnvelopeOpen] = useState(false);
@@ -75,7 +76,7 @@ const AboutSection = () => {
                     I'm also a <em className="text-sage dark:text-butter/80">florist</em>
                   </p>
                   <p className="font-body text-xs leading-relaxed text-muted-foreground">
-                    Big on gift-giving, I make floral arrangements and handmade cards :)
+                    {funFact.body}
                   </p>
                 </div>
               </div>
@@ -83,7 +84,7 @@ const AboutSection = () => {
 
             {/* Envelope button — below the photo+postcard */}
             <a
-              href="https://delicatedainty.com/"
+              href={funFact.link}
               target="_blank"
               rel="noopener noreferrer"
               className="relative z-20 w-52 h-44 cursor-pointer mx-auto md:mx-0 -translate-y-8 block"
@@ -113,26 +114,15 @@ const AboutSection = () => {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <em className="text-foreground font-display text-3xl">Web developer and designer, just bringing ideas into life in many forms.</em>
-            <p className="font-body text-lg leading-relaxed text-muted-foreground">
-              As an undergraduate CS student with a background in both creative and technical disciplines, I try to bring a unique perspective to the projects I contribute to.
-              From working with non-profit organizations, student-led initiatives, and personal projects, I care about the functionality, design, and impact of my work.
-              What started with a passion for making fun websites turned into a habit for trying new things...from those experiences I’ve developed an interest for understanding problems, thinking about the people I’m building for, and turning ideas into meaningful solutions.
-            </p>
-
-            <p className="font-body text-lg leading-relaxed text-muted-foreground">
-              When I'm not working on projects, you'll find me
-              reading, journaling, or doodling.
-            </p>
+            <em className="text-foreground font-display text-3xl">{bio.headline}</em>
+            {bio.paragraphs.map((paragraph) => (
+              <p key={paragraph} className="font-body text-lg leading-relaxed text-muted-foreground">
+                {paragraph}
+              </p>
+            ))}
 
             <div className="grid grid-cols-2 gap-8 pt-6">
-              {[
-                { label: "Focus", value: "Product Management" },
-                { label: "Interest", value: "Full-stack Development, UI/UX Design" },
-                { label: "Based in", value: "Boston, MA" },
-                { label: "Education", value: "B.S in Computer Science" },
-                { label: "Stack/Tools", value: "TypeScript, React/JS, Laravel/PHP, Python, HTML/CSS, Figma, Git/Github" },
-              ].map((item) => (
+              {stats.map((item) => (
                 <div key={item.label}>
                   <p className="editorial-label mb-1">{item.label}</p>
                   <p className="font-display text-2xl text-foreground">{item.value}</p>

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import Postcard from "./Postcard";
+import { contact, socials } from "@/data/profile";
 
 const ContactSection = () => {
   return (
@@ -28,28 +29,23 @@ const ContactSection = () => {
               Let's <em className="text-sage dark:text-butter/80">chit-chat</em>
             </h2>
             <p className="font-body text-lg text-muted-foreground leading-relaxed max-w-md mb-10">
-              Have a project in mind or just want to say hello?
-              I'd love to hear from you. Drop me a message and I'll get back to you soon :)
+              {contact.blurb}
             </p>
 
             <div className="space-y-8">
               <div>
                 <p className="editorial-label mb-2">Email</p>
                 <a
-                  href="mailto:lvnh.le11@gmail.com"
+                  href={`mailto:${contact.email}`}
                   className="font-display text-2xl text-foreground hover:text-muted-foreground transition-colors"
                 >
-                  lvnh.le11@gmail.com
+                  {contact.email}
                 </a>
               </div>
               <div>
                 <p className="editorial-label mb-2">Socials</p>
                 <div className="space-y-2">
-                  {[
-                    { name: "GitHub", url: "https://github.com/LinhL1" },
-                    { name: "LinkedIn", url: "https://www.linkedin.com/in/linh-le-50751024b/" },
-                    { name: "Substack", url: "https://substack.com/@liinh" },
-                  ].map((social) => (
+                  {socials.map((social) => (
                     <a
                       key={social.name}
                       href={social.url}

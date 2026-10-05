@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-import { events } from "@/data/events";
+import { communityIntro, events } from "@/data/events";
 import EventPostcard from "@/components/EventPostcard";
 
 const CommunitySection = () => {
@@ -30,8 +30,7 @@ const CommunitySection = () => {
             Community & <em>Events</em>
           </h2>
           <p className="text-muted-foreground max-w-xl mb-16">
-            I love creating experiences where people feel welcome, the space is intentional, and everyone leaves having had a good time. 
-            Here are a few events I've hosted with communities I've been lucky to build with...
+            {communityIntro}
           </p>
         </motion.div>
 

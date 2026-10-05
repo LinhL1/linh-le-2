@@ -8,6 +8,7 @@ import progress from "@/assets/projects/progress.png";
 import auralink from "@/assets/projects/auralink.png";
 import toodly from "@/assets/projects/toodly.png";
 import glade from "@/assets/projects/glade.png";
+import sprout from "@/assets/projects/sprout.jpg";
 
 
 
@@ -34,6 +35,28 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  {
+    title: "OrgMap AI",
+    type: "AI Project Management / Project Intelligence",
+    category: "hackathon",
+    description:
+      "joint hackathon project: Turn meeting minutes, whiteboard photos and architecture diagrams into one live map of your project: who owns what, what's blocked, what was decided, and what's overdue.",
+    year: "September 2026",
+    link: "https://github.com/saquer916/guava-hackathon",
+    image: progress,
+    tools: ["Cloudinary AI", "TypeScript", "HTML", "CSS"]
+  },
+  {
+    title: "Sprout",
+    type: "AI Voice Agent",
+    category: "hackathon",
+    description:
+      "joint hackathon project: AI-assisted inbound-call triage prototype using Guava Voice AI and OpenEMR. It gathers structured history, applies transparent safety policies, recommends a routing disposition, and supports human-controlled scheduling decisions. It is not a diagnostic system and is not approved for clinical use.",
+    year: "September 2026",
+    link: "https://github.com/saquer916/guava-hackathon",
+    image: sprout,
+    tools: ["Python", "OpenERM", "Guava Voice AI"]
+  },
   {
     title: "Glade",
     type: "PWA/Mobile APP",
@@ -122,7 +145,7 @@ export const projects: Project[] = [
       approach: [
         "Partnered with the IN Network to translate their misinformation-literacy curriculum into a gamified flow with clear progress and feedback loops",
         "Prioritized a lightweight, mobile-first experience so it could be picked up in short sessions instead of requiring a sit-down course",
-        "Used Framer Motion to add responsive, low-friction feedback that reinforces correct/incorrect calls without breaking the flow",
+        "Used Framer Motion to add responsive feedback that reinforces correct/incorrect calls without breaking the flow",
       ],
       impact:
         "Delivered a deployed, publicly usable web app that gives the IN Network a self-serve education tool they can point learners to directly.",

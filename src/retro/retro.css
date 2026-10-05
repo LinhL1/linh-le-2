@@ -1,0 +1,882 @@
+/* Retro desktop ("LINH-OS"). Everything is scoped under .retro-desktop / .retro-page so the
+   classic site's styles and dark mode are untouched. Fonts are loaded in src/index.css. */
+
+.retro-desktop,
+.retro-page {
+  --r-ink: #1d1b16;
+  --r-ink-soft: #4a463b;
+  --r-paper: #fbf8ee;
+  --r-face: #e6dec6;
+  --r-face-dark: #cbc1a2;
+  --r-hi: #fffdf4;
+  --r-shadow: #8c8466;
+  --r-title: #3f6129;
+  --r-title-2: #7c9a4a;
+  --r-title-off: #8f8a78;
+  --r-desk: #24463f;
+  --r-desk-2: #1a3530;
+  --r-butter: #f0d98a;
+  --r-plum: #8b3a72;
+  --r-link: #2f4b7c;
+  --r-phosphor: #8dff8d;
+  --r-term-bg: #0c110c;
+  /* Silkscreen is a strict bitmap font: only use it at multiples of 8px (16, 24, 64). */
+  --r-display: "Silkscreen", "VT323", ui-monospace, monospace;
+  /* VT323 stays legible at small sizes, so labels and buttons use it. */
+  --r-pixel: "VT323", ui-monospace, monospace;
+  --r-term: "VT323", ui-monospace, monospace;
+  --r-body: "Inter", system-ui, sans-serif;
+  --r-bevel-out: inset -1px -1px 0 var(--r-ink), inset 1px 1px 0 var(--r-hi), inset -2px -2px 0 var(--r-shadow),
+    inset 2px 2px 0 var(--r-face);
+  --r-bevel-in: inset 1px 1px 0 var(--r-shadow), inset -1px -1px 0 var(--r-hi), inset 2px 2px 0 var(--r-ink),
+    inset -2px -2px 0 var(--r-face);
+}
+
+/* ---------- Desktop shell ---------- */
+
+.retro-desktop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: var(--r-ink);
+  font-family: var(--r-body);
+  font-size: 14px;
+  line-height: 1.55;
+  background-color: var(--r-desk);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(ellipse at 30% 20%, rgba(124, 154, 74, 0.25), transparent 60%),
+    linear-gradient(160deg, var(--r-desk), var(--r-desk-2));
+  background-size: 4px 4px, 100% 100%, 100% 100%;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22' shape-rendering='crispEdges'%3E%3Cpath d='M1 1v16l4-4 3 7 3-1-3-7h6z' fill='%23fff' stroke='%23000' stroke-width='1.2'/%3E%3C/svg%3E")
+      1 1,
+    auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+.retro-desktop--3d {
+  /* Fixed-resolution screen; the 3D scene scales it to fit the CRT. */
+  width: 960px;
+  height: 720px;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.55);
+}
+
+.retro-desktop a,
+.retro-desktop button {
+  cursor: pointer;
+}
+
+.retro-desktop__area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.retro-desktop__wallpaper {
+  position: absolute;
+  right: 28px;
+  bottom: 16px;
+  margin: 0;
+  font-family: var(--r-display);
+  font-size: 64px;
+  line-height: 1;
+  color: var(--r-butter);
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
+}
+
+.retro-desktop__idle {
+  position: absolute;
+  inset: auto 0 38% 0;
+  margin: 0 auto;
+  width: max-content;
+  padding: 10px 18px;
+  font-family: var(--r-display);
+  font-size: 16px;
+  color: var(--r-butter);
+  background: rgba(10, 16, 12, 0.72);
+  border: 2px solid var(--r-butter);
+  animation: retro-blink 1.6s steps(2, start) infinite;
+}
+
+.retro-desktop :focus-visible {
+  outline: 2px dotted var(--r-butter);
+  outline-offset: 2px;
+}
+
+.retro-desktop .retro-window :focus-visible {
+  outline-color: var(--r-plum);
+}
+
+/* ---------- Icons ---------- */
+
+.retro-icons {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 96px;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: #fffbe8;
+}
+
+.retro-icon svg {
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.35));
+}
+
+.retro-icon__label {
+  padding: 0 4px;
+  font-family: var(--r-pixel);
+  font-size: 19px;
+  line-height: 1.05;
+  text-align: center;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.retro-icon:hover .retro-icon__label,
+.retro-icon:focus-visible .retro-icon__label {
+  background: var(--r-title);
+  text-shadow: none;
+}
+
+.retro-desktop.is-compact .retro-icons {
+  right: 10px;
+  left: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  justify-items: center;
+}
+
+.retro-desktop.is-compact .retro-icon {
+  width: 84px;
+}
+
+/* ---------- Bevelled controls ---------- */
+
+.retro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-bevel-out);
+  color: var(--r-ink);
+  font-family: var(--r-pixel);
+  font-size: 19px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.retro-btn:active,
+.retro-btn[aria-pressed="true"] {
+  box-shadow: var(--r-bevel-in);
+  background: var(--r-face-dark);
+}
+
+.retro-btn--small {
+  min-height: 24px;
+  padding: 2px 8px;
+}
+
+.retro-stack > .retro-btn,
+.retro-panel > .retro-btn {
+  align-self: flex-start;
+}
+
+.retro-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--r-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- Windows ---------- */
+
+.retro-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 3px;
+  background: var(--r-face);
+  box-shadow: var(--r-bevel-out), 5px 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+.retro-window:focus {
+  outline: none;
+}
+
+.retro-window.is-compact {
+  inset: 0;
+  box-shadow: var(--r-bevel-out);
+}
+
+.retro-window__titlebar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 3px 0 5px;
+  background: linear-gradient(90deg, var(--r-title-off), #b4ae98);
+  color: #f4f1e6;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.retro-window.is-focused .retro-window__titlebar {
+  background: linear-gradient(90deg, var(--r-title), var(--r-title-2));
+  color: #fffbe8;
+}
+
+.retro-window.is-compact .retro-window__titlebar {
+  cursor: default;
+}
+
+.retro-window__title {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--r-display);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.retro-window__close {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-bevel-out);
+  color: var(--r-ink);
+}
+
+.retro-window__close:active {
+  box-shadow: var(--r-bevel-in);
+}
+
+.retro-window__body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 3px;
+  padding: 16px 18px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--r-paper);
+  box-shadow: var(--r-bevel-in);
+}
+
+.retro-window__body--terminal {
+  padding: 0;
+  background: var(--r-term-bg);
+}
+
+/* ---------- Window content ---------- */
+
+.retro-desktop p {
+  margin: 0;
+}
+
+.retro-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.retro-kicker {
+  font-family: var(--r-pixel);
+  font-size: 17px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--r-ink-soft);
+}
+
+.retro-h {
+  font-family: var(--r-display);
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.retro-lede {
+  margin-top: 4px;
+  font-family: var(--font-body, Georgia, serif);
+  font-size: 17px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.retro-muted {
+  color: var(--r-ink-soft);
+}
+
+.retro-small {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--r-ink-soft);
+}
+
+.retro-desktop .retro-window a {
+  color: var(--r-link);
+  text-underline-offset: 2px;
+}
+
+.retro-desktop .retro-window a.retro-btn {
+  color: var(--r-ink);
+}
+
+.retro-about__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.retro-photo {
+  flex: none;
+  width: 104px;
+  height: 128px;
+  object-fit: cover;
+  border: 3px solid var(--r-face);
+  box-shadow: var(--r-bevel-in), 3px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.retro-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #f3eedd;
+  border: 1px solid var(--r-face-dark);
+}
+
+.retro-panel--security {
+  background: var(--r-term-bg);
+  border-color: #000;
+  color: #d9f5d9;
+}
+
+.retro-panel--security .retro-muted,
+.retro-panel--security .retro-small {
+  color: #9fbf9f;
+}
+
+.retro-panel__title {
+  margin: 0;
+  font-family: var(--r-term);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--r-phosphor);
+}
+
+.retro-panel__lede {
+  font-weight: 500;
+  color: #fff;
+}
+
+.retro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-list--bullets {
+  gap: 4px;
+  padding-left: 18px;
+  list-style: square;
+}
+
+.retro-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-family: var(--r-pixel);
+  font-size: 16px;
+  line-height: 16px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  color: var(--r-term-bg);
+  background: var(--r-phosphor);
+}
+
+.retro-list .retro-tag:first-child {
+  margin-left: 0;
+}
+
+.retro-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.retro-stats dt {
+  font-family: var(--r-pixel);
+  font-size: 17px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--r-ink-soft);
+}
+
+.retro-stats dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.retro-timeline {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-timeline li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 0;
+  border-top: 1px dashed var(--r-face-dark);
+}
+
+.retro-timeline li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.retro-entry__title {
+  margin: 0;
+  font-family: var(--r-body);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.retro-card {
+  display: flex;
+  flex-direction: column;
+  background: #f3eedd;
+  border: 1px solid var(--r-face-dark);
+}
+
+.retro-card__img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-bottom: 1px solid var(--r-face-dark);
+}
+
+.retro-card__img--project {
+  aspect-ratio: 16 / 8;
+  border: 1px solid var(--r-face-dark);
+  background: #fff;
+}
+
+.retro-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.retro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro-chips li {
+  padding: 0 7px;
+  font-family: var(--r-pixel);
+  font-size: 17px;
+  background: var(--r-face);
+  box-shadow: var(--r-bevel-out);
+}
+
+.retro-projects {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 12px 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.retro-desktop.is-compact .retro-projects {
+  display: flex;
+  flex-direction: column;
+}
+
+.retro-projects__list {
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+  box-shadow: var(--r-bevel-in);
+}
+
+.retro-projects__detail {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.retro-projects__footer {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px dashed var(--r-face-dark);
+}
+
+.retro-filelist {
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+}
+
+.retro-filelist__item {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--r-ink);
+  text-align: left;
+}
+
+.retro-filelist__item:hover {
+  background: #efe9d6;
+}
+
+.retro-filelist__item[aria-current="true"] {
+  background: var(--r-title);
+  color: #fffbe8;
+}
+
+.retro-filelist__name {
+  font-weight: 500;
+}
+
+.retro-filelist__meta {
+  flex: none;
+  font-family: var(--r-pixel);
+  font-size: 16px;
+  opacity: 0.75;
+}
+
+.retro-email {
+  font-size: 18px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.retro-status:empty {
+  display: none;
+}
+
+/* ---------- Terminal ---------- */
+
+.retro-terminal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 10px 12px;
+  font-family: var(--r-term);
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--r-phosphor);
+  text-shadow: 0 0 6px rgba(141, 255, 141, 0.45);
+  cursor: text;
+}
+
+.retro-terminal__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.retro-terminal__line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.retro-terminal__line.is-muted {
+  color: #6fae6f;
+}
+
+.retro-terminal__line.is-heading {
+  color: #e9ffe9;
+}
+
+.retro-terminal__line.is-accent,
+.retro-terminal__line.is-accent a,
+.retro-desktop .retro-window .retro-terminal a {
+  color: var(--r-butter);
+}
+
+.retro-terminal__line.is-error {
+  color: #ff9c8a;
+}
+
+.retro-terminal__prompt {
+  color: var(--r-butter);
+}
+
+.retro-terminal__form {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.retro-terminal__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  caret-color: var(--r-phosphor);
+}
+
+.retro-desktop .retro-terminal__input:focus-visible {
+  outline: none;
+}
+
+/* ---------- Taskbar ---------- */
+
+.retro-taskbar {
+  position: relative;
+  z-index: 100000;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 3px 4px;
+  background: var(--r-face);
+  box-shadow: inset 0 1px 0 var(--r-hi), inset 0 2px 0 var(--r-face), 0 -1px 0 var(--r-shadow);
+}
+
+.retro-taskbar__tasks {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.retro-taskbar__task {
+  max-width: 150px;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.retro-taskbar__task span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.retro-taskbar__clock {
+  flex: none;
+  padding: 2px 10px;
+  font-family: var(--r-pixel);
+  font-size: 19px;
+  box-shadow: var(--r-bevel-in);
+}
+
+/* ---------- CRT overlay ---------- */
+
+.retro-crt {
+  position: absolute;
+  inset: 0;
+  z-index: 200000;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.09) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.35) 100%);
+  animation: retro-flicker 7s infinite;
+}
+
+.retro-desktop--2d .retro-crt {
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 70%, rgba(0, 0, 0, 0.25) 100%);
+}
+
+.retro-desktop--3d::after {
+  /* Glass sheen across the tube. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 200001;
+  pointer-events: none;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.07) 0%, transparent 35%);
+}
+
+@keyframes retro-flicker {
+  0%, 100% { opacity: 1; }
+  48% { opacity: 1; }
+  50% { opacity: 0.85; }
+  52% { opacity: 1; }
+}
+
+@keyframes retro-blink {
+  to { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-crt,
+  .retro-desktop__idle {
+    animation: none;
+  }
+}
+
+/* ---------- Page chrome (outside the screen) ---------- */
+
+.retro-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 35%, #3b332b 0%, #1d1915 55%, #110e0c 100%);
+  color: #f4ecd8;
+  font-family: var(--r-body);
+}
+
+.retro-scene {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  touch-action: none;
+}
+
+.retro-scene.is-hovering {
+  cursor: pointer;
+}
+
+.retro-hud {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.retro-hud--top {
+  top: 16px;
+  right: 16px;
+  left: 16px;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.retro-hud--top > * {
+  pointer-events: auto;
+}
+
+.retro-hud--bottom {
+  bottom: 20px;
+  left: 50%;
+  flex-direction: column;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.retro-hud__brand {
+  font-family: var(--r-display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  color: var(--r-butter);
+}
+
+.retro-hud__hint {
+  margin: 0;
+  font-family: var(--r-pixel);
+  font-size: 19px;
+  padding: 0 8px;
+  color: rgba(244, 236, 216, 0.85);
+  background: rgba(17, 14, 12, 0.6);
+}
+
+.retro-hud__key {
+  padding: 0 4px;
+  font-size: 15px;
+  opacity: 0.7;
+  box-shadow: var(--r-bevel-in);
+}
+
+.retro-hud__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.retro-hud .retro-btn {
+  font-size: 19px;
+}
+
+.retro-hud .retro-btn--primary {
+  min-height: 36px;
+  padding: 4px 18px;
+  font-size: 22px;
+}
+
+.retro-page :focus-visible {
+  outline: 2px dotted var(--r-butter);
+  outline-offset: 3px;
+}
+
+.retro-page--2d .retro-desktop {
+  height: 100%;
+}
+
+.retro-boot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--r-term);
+  font-size: 22px;
+  color: var(--r-phosphor);
+}

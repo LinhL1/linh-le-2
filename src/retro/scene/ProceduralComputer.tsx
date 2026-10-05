@@ -1,0 +1,360 @@
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { RoundedBox } from "@react-three/drei";
+import {
+  BoxGeometry,
+  CatmullRomCurve3,
+  Color,
+  ExtrudeGeometry,
+  InstancedMesh,
+  Material,
+  MeshStandardMaterial,
+  Object3D,
+  Path,
+  Quaternion,
+  Shape,
+  TubeGeometry,
+  Vector3,
+} from "three";
+import { PROCEDURAL_SCREEN } from "./model.config";
+
+// A beige 90s desktop built from primitives — no external assets. Layout (world units):
+// desk top at y=0, base unit under the monitor, keyboard and mouse in front.
+// The screen opening matches PROCEDURAL_SCREEN so the live desktop lines up with it.
+
+const PALETTE = {
+  beige: "#d8ceb0",
+  beigeDark: "#bcb08e",
+  beigeLight: "#e6dec6",
+  charcoal: "#2b2924",
+  glass: "#0b100c",
+  wood: "#5b4030",
+  keyLight: "#ebe4cf",
+  keyDark: "#a89e86",
+  ledGreen: "#5dff7a",
+  ledAmber: "#ffb340",
+  mousepad: "#3f5a3a",
+  floppy: "#2f4b7c",
+  vase: "#9fb7b0",
+  stem: "#4f6b2f",
+  bloomA: "#f0d98a",
+  bloomB: "#c77aa8",
+};
+
+/** useMemo + dispose on unmount, for geometries/materials shared across meshes. */
+function useDisposable<T extends Record<string, { dispose: () => void }>>(factory: () => T): T {
+  const value = useMemo(factory, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => Object.values(value).forEach((v) => v.dispose()), [value]);
+  return value;
+}
+
+/** Box whose back face is smaller than its front: the CRT tube housing. */
+function taperedBox(wFront: number, hFront: number, wBack: number, hBack: number, depth: number) {
+  const geo = new BoxGeometry(1, 1, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const front = pos.getZ(i) > 0;
+    pos.setXYZ(i, pos.getX(i) * (front ? wFront : wBack), pos.getY(i) * (front ? hFront : hBack), pos.getZ(i) * depth);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function roundedRect<T extends Path>(path: T, w: number, h: number, r: number, cy = 0): T {
+  const x = -w / 2;
+  const y = cy - h / 2;
+  path.moveTo(x + r, y);
+  path.lineTo(x + w - r, y);
+  path.quadraticCurveTo(x + w, y, x + w, y + r);
+  path.lineTo(x + w, y + h - r);
+  path.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  path.lineTo(x + r, y + h);
+  path.quadraticCurveTo(x, y + h, x, y + h - r);
+  path.lineTo(x, y + r);
+  path.quadraticCurveTo(x, y, x + r, y);
+  return path;
+}
+
+// Monitor bezel: outer frame with a 4:3 opening, extruded with a soft bevel.
+const BEZEL = { width: 1.66, height: 1.34, centerY: -0.06, depth: 0.06, bevel: 0.025 };
+const OPENING = { width: PROCEDURAL_SCREEN.width + 0.03, height: PROCEDURAL_SCREEN.height + 0.03 };
+
+function bezelGeometry() {
+  const shape = roundedRect(new Shape(), BEZEL.width - BEZEL.bevel * 2, BEZEL.height - BEZEL.bevel * 2, 0.08);
+  // The bevel grows the outline outward and shrinks holes inward, so pre-compensate.
+  // The bezel mesh sits at BEZEL.centerY, so offset the opening to stay centred on the screen.
+  const hole = roundedRect(new Path(), OPENING.width + BEZEL.bevel * 2, OPENING.height + BEZEL.bevel * 2, 0.04, -BEZEL.centerY);
+  shape.holes.push(hole);
+  return new ExtrudeGeometry(shape, {
+    depth: BEZEL.depth,
+    bevelEnabled: true,
+    bevelThickness: BEZEL.bevel,
+    bevelSize: BEZEL.bevel,
+    bevelSegments: 3,
+    curveSegments: 8,
+  });
+}
+
+// Keyboard layout in key units (u): [x, row, width]. Rows run back (0) to front (5).
+const KEY_U = 0.1;
+function keyboardLayout(): [number, number, number][] {
+  const keys: [number, number, number][] = [];
+  const row = (r: number, widths: number[], startX = 0) => {
+    let x = startX;
+    for (const w of widths) {
+      keys.push([x + w / 2, r, w]);
+      x += w;
+    }
+  };
+  const ones = (n: number) => Array<number>(n).fill(1);
+  row(0, [1], 0);
+  row(0, ones(4), 1.5);
+  row(0, ones(4), 6);
+  row(0, ones(4), 10.5);
+  row(1.25, [...ones(13), 2]);
+  row(2.25, [1.5, ...ones(12), 1.5]);
+  row(3.25, [1.75, ...ones(11), 2.25]);
+  row(4.25, [2.25, ...ones(10), 2.75]);
+  row(5.25, [1.5, 1.5, 9, 1.5, 1.5]);
+  // Numpad
+  for (let r = 0; r < 5; r++) row(1.25 + r, ones(4), 15.5);
+  return keys;
+}
+
+function Keyboard({ materials }: { materials: { keyLight: Material } }) {
+  const ref = useRef<InstancedMesh>(null);
+  const layout = useMemo(keyboardLayout, []);
+  const cap = useDisposable(() => ({ geo: new BoxGeometry(KEY_U * 0.86, 0.04, KEY_U * 0.86) }));
+
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const dummy = new Object3D();
+    const light = new Color(PALETTE.keyLight);
+    const dark = new Color(PALETTE.keyDark);
+    const offsetX = -19.5 / 2;
+    const offsetZ = -6.25 / 2;
+    layout.forEach(([x, r, w], i) => {
+      dummy.position.set((x + offsetX) * KEY_U, 0.055, (r + 0.5 + offsetZ) * KEY_U);
+      dummy.scale.set(w === 1 ? 1 : (w * KEY_U - KEY_U * 0.14) / (KEY_U * 0.86), 1, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      // Function row and wide modifier keys get the darker grey-beige.
+      mesh.setColorAt(i, r === 0 || w !== 1 ? dark : light);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  }, [layout]);
+
+  return (
+    <group position={[-0.05, 0, 1.5]} rotation={[0.05, 0, 0]}>
+      <RoundedBox args={[2.12, 0.07, 0.8]} radius={0.025} smoothness={3} position={[0, 0.035, 0]}>
+        <meshStandardMaterial color={PALETTE.beige} roughness={0.6} />
+      </RoundedBox>
+      <instancedMesh ref={ref} args={[cap.geo, materials.keyLight, layout.length]} />
+    </group>
+  );
+}
+
+function Cord({ points, material }: { points: [number, number, number][]; material: Material }) {
+  const geo = useDisposable(() => ({
+    tube: new TubeGeometry(new CatmullRomCurve3(points.map((p) => new Vector3(...p))), 40, 0.009, 6, false),
+  }));
+  return <mesh geometry={geo.tube} material={material} />;
+}
+
+const BLOOMS: { tip: [number, number, number]; color: string }[] = [
+  { tip: [0.02, 0.62, 0.0], color: PALETTE.bloomA },
+  { tip: [-0.1, 0.55, 0.05], color: PALETTE.bloomB },
+  { tip: [0.11, 0.5, -0.04], color: PALETTE.bloomB },
+  { tip: [-0.03, 0.47, -0.08], color: PALETTE.bloomA },
+];
+
+function Vase() {
+  const stems = useMemo(() => {
+    const up = new Vector3(0, 1, 0);
+    const base = new Vector3(0, 0.3, 0);
+    return BLOOMS.map(({ tip }) => {
+      const end = new Vector3(...tip);
+      const dir = end.clone().sub(base);
+      return {
+        length: dir.length(),
+        mid: base.clone().add(end).multiplyScalar(0.5).toArray() as [number, number, number],
+        quat: new Quaternion().setFromUnitVectors(up, dir.normalize()),
+      };
+    });
+  }, []);
+
+  return (
+    <group position={[-1.75, 0, 0.35]}>
+      <mesh position={[0, 0.16, 0]}>
+        <cylinderGeometry args={[0.09, 0.12, 0.32, 24]} />
+        <meshStandardMaterial color={PALETTE.vase} roughness={0.25} />
+      </mesh>
+      {BLOOMS.map(({ tip, color }, i) => (
+        <group key={i}>
+          <mesh position={stems[i].mid} quaternion={stems[i].quat}>
+            <cylinderGeometry args={[0.006, 0.006, stems[i].length, 6]} />
+            <meshStandardMaterial color={PALETTE.stem} />
+          </mesh>
+          <mesh position={tip}>
+            <icosahedronGeometry args={[0.055, 0]} />
+            <meshStandardMaterial color={color} roughness={0.6} flatShading />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+interface ProceduralComputerProps {
+  /** Power LED on the monitor chin glows while the screen is "on" (zoomed in). */
+  poweredOn: boolean;
+}
+
+export function ProceduralComputer({ poweredOn }: ProceduralComputerProps) {
+  const mats = useDisposable(() => ({
+    beige: new MeshStandardMaterial({ color: PALETTE.beige, roughness: 0.55 }),
+    beigeDark: new MeshStandardMaterial({ color: PALETTE.beigeDark, roughness: 0.6 }),
+    beigeLight: new MeshStandardMaterial({ color: PALETTE.beigeLight, roughness: 0.5 }),
+    charcoal: new MeshStandardMaterial({ color: PALETTE.charcoal, roughness: 0.7 }),
+    glass: new MeshStandardMaterial({ color: PALETTE.glass, roughness: 0.2, metalness: 0.1 }),
+    keyLight: new MeshStandardMaterial({ color: "#ffffff", roughness: 0.55 }),
+    ledAmber: new MeshStandardMaterial({ color: PALETTE.ledAmber, emissive: PALETTE.ledAmber, emissiveIntensity: 0.6 }),
+    cord: new MeshStandardMaterial({ color: "#3a3730", roughness: 0.8 }),
+  }));
+  const geos = useDisposable(() => ({
+    bezel: bezelGeometry(),
+    housing: taperedBox(1.44, 1.14, 0.84, 0.62, 0.78),
+  }));
+
+  const monitorZ = PROCEDURAL_SCREEN.position[2];
+  const ledColor = poweredOn ? PALETTE.ledGreen : "#2f4a33";
+
+  const shadowProps = (receive = false) => ({ castShadow: false, receiveShadow: receive });
+
+  return (
+    <group>
+      {/* Desk */}
+      <mesh position={[0, -0.06, 0.45]} {...shadowProps(true)}>
+        <boxGeometry args={[7.5, 0.12, 3.9]} />
+        <meshStandardMaterial color={PALETTE.wood} roughness={0.78} />
+      </mesh>
+
+      {/* Base unit */}
+      <group position={[0, 0, -0.25]}>
+        <RoundedBox args={[2.1, 0.42, 1.7]} radius={0.03} smoothness={3} position={[0, 0.21, 0]} material={mats.beige} />
+        {/* front panel details (front face at z = 0.85) */}
+        <group position={[0, 0, 0.852]}>
+          <mesh position={[0.48, 0.29, 0]} material={mats.beigeDark}>
+            <boxGeometry args={[0.66, 0.11, 0.008]} />
+          </mesh>
+          <mesh position={[0.48, 0.29, 0.005]} material={mats.charcoal}>
+            <boxGeometry args={[0.46, 0.022, 0.006]} />
+          </mesh>
+          <mesh position={[0.48, 0.13, 0]} material={mats.beigeDark}>
+            <boxGeometry args={[0.66, 0.15, 0.008]} />
+          </mesh>
+          <mesh position={[0.48, 0.13, 0.005]} material={mats.charcoal}>
+            <boxGeometry args={[0.52, 0.02, 0.006]} />
+          </mesh>
+          {[-0.34, -0.29, -0.24, -0.19, -0.14, -0.09].map((x) => (
+            <mesh key={x} position={[x, 0.2, 0.002]} material={mats.charcoal}>
+              <boxGeometry args={[0.014, 0.2, 0.004]} />
+            </mesh>
+          ))}
+          <RoundedBox args={[0.13, 0.08, 0.03]} radius={0.01} position={[-0.78, 0.2, 0.012]} material={mats.beigeLight} />
+          <mesh position={[-0.6, 0.27, 0.004]}>
+            <boxGeometry args={[0.03, 0.015, 0.008]} />
+            <meshStandardMaterial color={ledColor} emissive={ledColor} emissiveIntensity={poweredOn ? 1.4 : 0.2} />
+          </mesh>
+          <mesh position={[-0.54, 0.27, 0.004]} material={mats.ledAmber}>
+            <boxGeometry args={[0.03, 0.015, 0.008]} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Monitor swivel stand */}
+      <mesh position={[0, 0.445, -0.05]} material={mats.beigeDark}>
+        <cylinderGeometry args={[0.46, 0.5, 0.05, 40]} />
+      </mesh>
+      <mesh position={[0, 0.55, -0.05]} material={mats.beige}>
+        <boxGeometry args={[0.6, 0.18, 0.5]} />
+      </mesh>
+
+      {/* Monitor — origin at screen centre height, front of the bezel near z = monitorZ */}
+      <group position={[0, PROCEDURAL_SCREEN.position[1], 0]}>
+        <mesh geometry={geos.bezel} material={mats.beige} position={[0, BEZEL.centerY, monitorZ + 0.01]} />
+        {/* Dark recess between the glass and the bezel */}
+        <mesh position={[0, 0, monitorZ - 0.02]} material={mats.charcoal}>
+          <boxGeometry args={[OPENING.width + 0.06, OPENING.height + 0.06, 0.02]} />
+        </mesh>
+        {/* Glass (only visible if the HTML layer is missing) */}
+        <mesh position={[0, 0, monitorZ - 0.006]} material={mats.glass}>
+          <planeGeometry args={[PROCEDURAL_SCREEN.width, PROCEDURAL_SCREEN.height]} />
+        </mesh>
+        {/* Front housing and tapered tube */}
+        {/* Keep every face clear of the screen plane (monitorZ) to avoid z-fighting with the HTML hole. */}
+        <mesh position={[0, BEZEL.centerY, monitorZ - 0.2]} material={mats.beige}>
+          <boxGeometry args={[1.58, 1.28, 0.3]} />
+        </mesh>
+        <mesh geometry={geos.housing} material={mats.beige} position={[0, -0.12, monitorZ - 0.34 - 0.39]} />
+        <mesh position={[0, -0.12, monitorZ - 1.15]} material={mats.beigeDark}>
+          <boxGeometry args={[0.7, 0.48, 0.06]} />
+        </mesh>
+        {/* Vent grooves on top */}
+        {[0.06, 0.12, 0.18, 0.24].map((dz) => (
+          <mesh key={dz} position={[0, BEZEL.centerY + 0.641, monitorZ - 0.34 + dz]} material={mats.charcoal}>
+            <boxGeometry args={[1.1, 0.004, 0.022]} />
+          </mesh>
+        ))}
+        {/* Chin: badge, knobs, power button and LED */}
+        <group position={[0, -0.6, monitorZ + 0.1]}>
+          <mesh position={[-0.56, 0, 0]} material={mats.beigeDark}>
+            <boxGeometry args={[0.3, 0.06, 0.006]} />
+          </mesh>
+          {[0.22, 0.32].map((x) => (
+            <mesh key={x} position={[x, 0, 0.006]} rotation={[Math.PI / 2, 0, 0]} material={mats.beigeDark}>
+              <cylinderGeometry args={[0.025, 0.025, 0.02, 16]} />
+            </mesh>
+          ))}
+          <mesh position={[0.5, 0, 0.004]}>
+            <boxGeometry args={[0.028, 0.014, 0.008]} />
+            <meshStandardMaterial color={ledColor} emissive={ledColor} emissiveIntensity={poweredOn ? 1.6 : 0.2} />
+          </mesh>
+          <RoundedBox args={[0.1, 0.06, 0.03]} radius={0.01} position={[0.62, 0, 0.008]} material={mats.beigeLight} />
+        </group>
+      </group>
+
+      <Keyboard materials={mats} />
+      <Cord material={mats.cord} points={[[0, 0.04, 1.1], [0.05, 0.01, 0.95], [0.25, 0.01, 0.8], [0.6, 0.05, 0.62]]} />
+
+      {/* Mouse on its pad */}
+      <mesh position={[1.62, 0.006, 1.45]} rotation={[0, -0.08, 0]}>
+        <boxGeometry args={[0.6, 0.012, 0.52]} />
+        <meshStandardMaterial color={PALETTE.mousepad} roughness={0.9} />
+      </mesh>
+      <group position={[1.62, 0.012, 1.48]} rotation={[0, -0.12, 0]}>
+        <mesh scale={[1, 0.42, 1]} position={[0, 0.035, 0]} rotation={[Math.PI / 2, 0, 0]} material={mats.beigeLight}>
+          <capsuleGeometry args={[0.085, 0.13, 6, 16]} />
+        </mesh>
+        <mesh position={[0, 0.072, -0.06]} material={mats.beigeDark}>
+          <boxGeometry args={[0.004, 0.004, 0.09]} />
+        </mesh>
+      </group>
+      <Cord material={mats.cord} points={[[1.6, 0.03, 1.31], [1.55, 0.01, 1.05], [1.3, 0.01, 0.8], [1.0, 0.05, 0.61]]} />
+
+      {/* A few floppies */}
+      <group position={[-1.65, 0.008, 1.35]} rotation={[0, 0.35, 0]}>
+        {[0, 1].map((i) => (
+          <mesh key={i} position={[i * 0.03, i * 0.012, i * -0.02]} rotation={[0, i * 0.2, 0]}>
+            <boxGeometry args={[0.3, 0.01, 0.3]} />
+            <meshStandardMaterial color={i ? "#7a3a62" : PALETTE.floppy} roughness={0.5} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Small vase of flowers (fun fact: florist) */}
+      <Vase />
+    </group>
+  );
+}

@@ -22,6 +22,9 @@ export interface CommunityEvent {
   linkLabel?: string;
 }
 
+export const communityIntro =
+  "I love creating experiences where people feel welcome, the space is intentional, and everyone leaves having had a good time. Here are a few events I've hosted with communities I've been lucky to build with...";
+
 // To add an event: drop a photo in src/assets/events/, import it above,
 // and append an entry here. Cards render in array order.
 export const events: CommunityEvent[] = [

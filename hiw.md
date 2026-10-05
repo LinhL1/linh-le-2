@@ -19,6 +19,7 @@
 15. [Routing](#15-routing)
 16. [Build & Deployment](#16-build--deployment)
 17. [Concepts to Master Next](#17-concepts-to-master-next)
+18. [The Retro Desktop (`/`)](#18-the-retro-desktop-)
 
 ---
 
@@ -632,6 +633,27 @@ Now that you understand what's in this project, here's a progression to deepen y
 - **Chrome DevTools**: inspect elements, debug CSS, monitor network requests
 - **Figma**: design before you build — saves enormous refactoring time
 - **Storybook**: develop and test components in isolation
+
+---
+
+## 18. The Retro Desktop (`/`)
+
+`/` is a 3D beige computer whose screen runs a real React "LINH-OS" desktop. The editorial site moved to `/classic`, and `/projects` is unchanged.
+
+**Where things live**
+- `src/data/experience.ts`, `profile.ts` (bio, stats, contact, socials) and `security.ts` (cyber framing) are shared by both sites, so edit content there.
+- `src/retro/desktop/` holds the desktop, windows, taskbar, the six apps and the terminal (`terminal/commands.ts` is a pure function, so it's easy to test).
+- `src/retro/scene/` holds the three.js scene. It's lazy-loaded, so three.js only downloads when the 3D view is used.
+- `src/retro/useRetroMode.ts` decides between 3D and 2D: 2D on viewports under 900×600, with `prefers-reduced-motion`, without WebGL, or with `?mode=2d`.
+
+**How the screen works**
+drei's `<Html transform occlude="blending">` places the desktop DOM behind the WebGL canvas and cuts a transparent hole where the glass is. The text stays crisp and fully interactive. Because the canvas then ignores pointer events, the `<Canvas>` uses `eventSource` (the wrapper div) for clicks and orbiting. Nothing in the model may sit at exactly the screen's depth, or it z-fights with the hole and the screen goes pale and dithered.
+
+**Swapping in a downloaded model**
+Put the `.glb` in `public/models/`, change `COMPUTER_MODEL` in `src/retro/scene/model.config.ts` (an example is commented there), tune `screen` until the desktop lines up with the glass, and credit the model in `CREDITS.md`.
+
+**Cursor**
+`CursorEffect` only runs on the classic routes and toggles `html.custom-cursor`, which is what hides the system cursor. The retro desktop has its own pixel arrow.
 
 ---
 

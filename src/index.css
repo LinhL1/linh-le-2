@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&family=Inter:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400;1,8..60,500&family=Inter:wght@300;400;500;600&family=Silkscreen&family=VT323&display=swap');
 
 @font-face {
   font-family: 'ZTOskon';
@@ -208,10 +208,11 @@
   }
 }
 
-/* Cursor effect — desktop only */
+/* Cursor effect — desktop only. CursorEffect adds .custom-cursor to <html> while mounted
+   (classic routes only; the retro desktop keeps its own pixel cursor). */
 @layer base {
   @media (min-width: 768px) {
-    * {
+    html.custom-cursor * {
       cursor: none !important;
     }
 
