@@ -780,9 +780,17 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 35%, #3b332b 0%, #1d1915 55%, #110e0c 100%);
+  /* Dark night room; the window and skyline are part of the 3D scene. */
+  /* Matches the rendered back wall (ROOM_COLOR in NightCity.tsx) so orbiting never shows a seam. */
+  background: #141219;
   color: #f4ecd8;
   font-family: var(--r-body);
+  /* Dragging to orbit shouldn't select HUD text; windows re-enable selection below. */
+  user-select: none;
+}
+
+.retro-window__body {
+  user-select: text;
 }
 
 .retro-scene {
@@ -878,5 +886,5 @@
   height: 100%;
   font-family: var(--r-term);
   font-size: 22px;
-  color: var(--r-phosphor);
+  color: var(--r-butter);
 }

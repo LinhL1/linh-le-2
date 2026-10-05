@@ -15,6 +15,7 @@ const FADE_DURATION = 500; // ms — must match the opacity transition in Loader
 
 // Boot text for the retro desktop (`/`). Lines reveal via CSS animation delays.
 const BOOT_LINES = ["LINH-OS BIOS v1.0", "Memory test ........ 640K OK", "Detecting drives .... A: C:", "Starting desktop..."];
+const BOOT_LINE_DELAY = 700; // ms between lines; keep the last line well inside RETRO_LOADER_DURATION in App.tsx
 
 interface LoaderProps {
   loading: boolean;
@@ -50,7 +51,7 @@ const Loader = ({ loading, variant = "classic" }: LoaderProps) => {
       <div className={`loader-overlay loader-overlay--retro${fadingOut ? " loader-overlay--hidden" : ""}`} aria-hidden="true">
         <div className="loader-boot">
           {BOOT_LINES.map((line, i) => (
-            <p key={line} style={{ animationDelay: `${i * 380}ms` }}>
+            <p key={line} style={{ animationDelay: `${i * BOOT_LINE_DELAY}ms` }}>
               {line}
             </p>
           ))}

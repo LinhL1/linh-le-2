@@ -16,6 +16,8 @@ const queryClient = new QueryClient();
 
 // 7 frames at 100ms ≈ 700ms per cycle — 3 cycles ≈ 2.1s before dismissing
 const LOADER_DURATION = 2100;
+// The retro boot screen reveals its lines one by one, so it stays up a little longer.
+const RETRO_LOADER_DURATION = 4600;
 
 // Route-aware chrome: the retro desktop (`/`) gets the boot-screen loader and keeps its own
 // pixel cursor, so the custom CursorEffect only runs on the classic pages.
@@ -26,9 +28,10 @@ const RouteChrome = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), LOADER_DURATION);
+    const duration = loaderVariant === "retro" ? RETRO_LOADER_DURATION : LOADER_DURATION;
+    const timer = setTimeout(() => setLoading(false), duration);
     return () => clearTimeout(timer);
-  }, []);
+  }, [loaderVariant]);
 
   return (
     <>

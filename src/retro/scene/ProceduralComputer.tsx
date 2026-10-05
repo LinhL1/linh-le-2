@@ -12,6 +12,7 @@ import {
   Path,
   Quaternion,
   Shape,
+  SphereGeometry,
   TubeGeometry,
   Vector3,
 } from "three";
@@ -27,7 +28,7 @@ const PALETTE = {
   beigeLight: "#e6dec6",
   charcoal: "#2b2924",
   glass: "#0b100c",
-  wood: "#5b4030",
+  wood: "#4f2e16",
   keyLight: "#ebe4cf",
   keyDark: "#a89e86",
   ledGreen: "#5dff7a",
@@ -157,7 +158,8 @@ function Keyboard({ materials }: { materials: { keyLight: Material } }) {
 
 function Cord({ points, material }: { points: [number, number, number][]; material: Material }) {
   const geo = useDisposable(() => ({
-    tube: new TubeGeometry(new CatmullRomCurve3(points.map((p) => new Vector3(...p))), 40, 0.009, 6, false),
+    // Centripetal Catmull-Rom keeps bends smooth without kinks or overshoot, like real cable slack.
+    tube: new TubeGeometry(new CatmullRomCurve3(points.map((p) => new Vector3(...p)), false, "centripetal"), 120, 0.009, 6, false),
   }));
   return <mesh geometry={geo.tube} material={material} />;
 }
@@ -202,6 +204,85 @@ function Vase() {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+// Rounded two-button mouse with a scroll wheel. Front points to -z (toward the computer).
+const MOUSE = { rx: 0.106, ry: 0.068, rz: 0.15, cy: 0.01, frontNarrow: 0.1 };
+
+/** Half-width of the egg-shaped body at depth z (narrower toward the front). */
+const mouseHalfWidth = (z: number) => MOUSE.rx * (1 - MOUSE.frontNarrow * Math.max(0, -z / MOUSE.rz));
+
+/** Height of the shell surface at (x, z), used to lay the seams onto the dome. */
+function mouseSurfaceY(x: number, z: number) {
+  const nx = x / mouseHalfWidth(z);
+  const nz = z / MOUSE.rz;
+  return MOUSE.cy + MOUSE.ry * Math.sqrt(Math.max(0, 1 - nx * nx - nz * nz));
+}
+
+function seamTube(points: [number, number][]) {
+  const pts = points.map(([x, z]) => new Vector3(x, mouseSurfaceY(x, z) + 0.0012, z));
+  return new TubeGeometry(new CatmullRomCurve3(pts), 48, 0.0017, 5, false);
+}
+
+function Mouse({
+  position,
+  rotationY,
+  materials,
+}: {
+  position: [number, number, number];
+  rotationY: number;
+  materials: { charcoal: Material };
+}) {
+  const res = useDisposable(() => {
+    // Ellipsoid, narrowed toward the front so it reads as an egg rather than a pill.
+    const body = new SphereGeometry(1, 40, 24);
+    const pos = body.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const z = pos.getZ(i) * MOUSE.rz;
+      pos.setXYZ(i, pos.getX(i) * mouseHalfWidth(z), pos.getY(i) * MOUSE.ry, z);
+    }
+    body.computeVertexNormals();
+
+    // Transverse seam bowing back around the wheel, then the left/right split to the front.
+    const across: [number, number][] = [];
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16;
+      const x = (t * 2 - 1) * mouseHalfWidth(-0.02) * 0.97;
+      across.push([x, -0.02 + 0.03 * (1 - Math.abs(t * 2 - 1))]);
+    }
+    const split: [number, number][] = [[0, -0.075], [0, -0.11], [0, -0.14]];
+
+    return {
+      body,
+      across: seamTube(across),
+      split: seamTube(split),
+      bodyMat: new MeshStandardMaterial({ color: "#e3ded2", roughness: 0.42 }),
+      skirtMat: new MeshStandardMaterial({ color: "#b7b1a4", roughness: 0.6 }),
+      wheelMat: new MeshStandardMaterial({ color: "#c9a57a", roughness: 0.5 }),
+    };
+  });
+
+  const wheelZ = -0.045;
+  const wheelTop = mouseSurfaceY(0, wheelZ);
+
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <mesh geometry={res.body} material={res.bodyMat} position={[0, MOUSE.cy, 0]} />
+      {/* Darker band around the base */}
+      <mesh position={[0, 0.006, 0.004]} scale={[MOUSE.rx * 1.02, 0.012, MOUSE.rz * 1.01]} material={res.skirtMat}>
+        <cylinderGeometry args={[1, 1, 1, 40]} />
+      </mesh>
+      <mesh geometry={res.across} material={materials.charcoal} />
+      <mesh geometry={res.split} material={materials.charcoal} />
+      {/* Scroll wheel in its slot, between the buttons */}
+      <mesh position={[0, wheelTop - 0.001, wheelZ]} rotation={[-0.25, 0, 0]} material={materials.charcoal}>
+        <boxGeometry args={[0.02, 0.006, 0.04]} />
+      </mesh>
+      <mesh position={[0, wheelTop - 0.003, wheelZ]} rotation={[0, 0, Math.PI / 2]} material={res.wheelMat}>
+        <cylinderGeometry args={[0.012, 0.012, 0.011, 20]} />
+      </mesh>
     </group>
   );
 }
@@ -326,22 +407,44 @@ export function ProceduralComputer({ poweredOn }: ProceduralComputerProps) {
       </group>
 
       <Keyboard materials={mats} />
-      <Cord material={mats.cord} points={[[0, 0.04, 1.1], [0.05, 0.01, 0.95], [0.25, 0.01, 0.8], [0.6, 0.05, 0.62]]} />
+      {/* Keyboard cord: leaves the back-left of the keyboard, lies slack on the desk in a loose
+          S-curve, then runs along the left side of the base unit (x = -1.05) into the back. */}
+      <Cord
+        material={mats.cord}
+        points={[
+          [-0.55, 0.04, 1.1],
+          [-0.57, 0.012, 1.02],
+          [-0.72, 0.011, 0.95],
+          [-0.98, 0.011, 0.97],
+          [-1.22, 0.011, 0.88],
+          [-1.3, 0.011, 0.68],
+          [-1.2, 0.011, 0.45],
+          [-1.17, 0.011, 0.1],
+          [-1.21, 0.011, -0.35],
+          [-1.17, 0.025, -0.85],
+          [-0.95, 0.09, -1.13],
+        ]}
+      />
 
       {/* Mouse on its pad */}
       <mesh position={[1.62, 0.006, 1.45]} rotation={[0, -0.08, 0]}>
         <boxGeometry args={[0.6, 0.012, 0.52]} />
         <meshStandardMaterial color={PALETTE.mousepad} roughness={0.9} />
       </mesh>
-      <group position={[1.62, 0.012, 1.48]} rotation={[0, -0.12, 0]}>
-        <mesh scale={[1, 0.42, 1]} position={[0, 0.035, 0]} rotation={[Math.PI / 2, 0, 0]} material={mats.beigeLight}>
-          <capsuleGeometry args={[0.085, 0.13, 6, 16]} />
-        </mesh>
-        <mesh position={[0, 0.072, -0.06]} material={mats.beigeDark}>
-          <boxGeometry args={[0.004, 0.004, 0.09]} />
-        </mesh>
-      </group>
-      <Cord material={mats.cord} points={[[1.6, 0.03, 1.31], [1.55, 0.01, 1.05], [1.3, 0.01, 0.8], [1.0, 0.05, 0.61]]} />
+      <Mouse position={[1.62, 0.012, 1.48]} rotationY={-0.12} materials={mats} />
+      {/* Mouse cord runs along the desk beside the base unit (right side ends at x = 1.05) and plugs in at the back. */}
+      <Cord
+        material={mats.cord}
+        points={[
+          [1.635, 0.016, 1.325],
+          [1.6, 0.011, 1.05],
+          [1.4, 0.011, 0.72],
+          [1.24, 0.011, 0.3],
+          [1.22, 0.011, -0.4],
+          [1.16, 0.03, -0.95],
+          [0.9, 0.1, -1.13],
+        ]}
+      />
 
       {/* A few floppies */}
       <group position={[-1.65, 0.008, 1.35]} rotation={[0, 0.35, 0]}>
