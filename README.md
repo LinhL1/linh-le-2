@@ -1,2 +1,2 @@
 # My personal portfolio :)
-Draft 1: April 4, 2026
+Draft 1: Oct 5, 2026
