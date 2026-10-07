@@ -1,4 +1,10 @@
 # Build notes
+
+> **Note (2026-10-05):** the maintained documentation now lives in [`docs/`](docs/README.md). These notes are
+> still a good guide to the classic site (Tailwind, design tokens, Framer Motion, postcard), but some
+> sections are out of date: project structure (§3), routes (§9, §15), hero dark-mode swap (§12.4) and
+> deployment (§16). See [docs/DEVELOPMENT_NOTES.md](docs/DEVELOPMENT_NOTES.md) #7.
+
 ---
 
 ## Table of Contents

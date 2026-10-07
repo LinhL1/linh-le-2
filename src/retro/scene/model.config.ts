@@ -56,5 +56,7 @@ export const COMPUTER_MODEL = { kind: "procedural" } as ComputerModelConfig;
 
 export const ACTIVE_SCREEN: ScreenRect = COMPUTER_MODEL.kind === "glb" ? COMPUTER_MODEL.screen : PROCEDURAL_SCREEN;
 
-/** Pixel size of the desktop DOM rendered onto the screen (4:3). */
-export const SCREEN_PIXELS = { width: 960, height: 720 };
+/** Pixel size of the desktop DOM rendered onto the screen (4:3). Must match `.retro-desktop--3d` in retro.css.
+ *  800×600 (the classic Win98 resolution) rather than more pixels, so text stays readable once the
+ *  screen is scaled down on small laptops. */
+export const SCREEN_PIXELS = { width: 800, height: 600 };

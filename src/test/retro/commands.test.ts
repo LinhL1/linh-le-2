@@ -59,7 +59,7 @@ describe("terminal commands", () => {
     expect(runCommand("open nope").action).toBeUndefined();
     expect(runCommand("clear").action).toEqual({ type: "clear" });
     expect(runCommand("exit").action).toEqual({ type: "exit" });
-    expect(runCommand("classic").action).toEqual({ type: "classic" });
+    expect(runCommand("classic").lines[0].text).toContain("command not found");
   });
 
   it("maps cat <file> to the matching command", () => {

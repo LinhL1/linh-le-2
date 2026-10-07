@@ -32,7 +32,7 @@ const AllProjects = () => {
             className="mb-12"
           >
             <Link
-              to="/classic"
+              to="/"
               className="inline-flex items-center gap-2 font-sans text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={14} />

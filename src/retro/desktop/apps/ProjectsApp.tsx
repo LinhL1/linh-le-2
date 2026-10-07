@@ -4,7 +4,7 @@ import { isSecurityHighlight } from "@/data/security";
 import { useDesktopContext } from "../DesktopContext";
 
 export function ProjectsApp() {
-  const { compact, navigate } = useDesktopContext();
+  const { compact } = useDesktopContext();
   // On phones the list and the detail view take turns; on larger screens both are shown.
   const [selected, setSelected] = useState<number | null>(compact ? null : 0);
   const project = selected === null ? null : projects[selected];
@@ -86,11 +86,6 @@ export function ProjectsApp() {
           <div className="retro-projects__detail">{detail}</div>
         </>
       )}
-      <p className="retro-projects__footer">
-        <button type="button" className="retro-link" onClick={() => navigate("/projects")}>
-          Browse all projects on the classic site →
-        </button>
-      </p>
     </div>
   );
 }

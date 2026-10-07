@@ -34,6 +34,16 @@ const CLOSE_GLYPH = [
   [0, 6, 2], [6, 6, 2],
 ];
 
+export function CloseGlyph() {
+  return (
+    <svg viewBox="0 0 8 7" width="10" height="9" shapeRendering="crispEdges" aria-hidden="true">
+      {CLOSE_GLYPH.map(([cx, cy, cw], i) => (
+        <rect key={i} x={cx} y={cy} width={cw} height={1} fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
+
 const MARGIN = 8;
 const TITLE_GRAB = 72; // px of the title bar that must stay visible when dragged off an edge
 
@@ -132,11 +142,7 @@ export function Window({
           {title}
         </h2>
         <button type="button" className="retro-window__close" aria-label={`Close ${title}`} onClick={onClose}>
-          <svg viewBox="0 0 8 7" width="10" height="9" shapeRendering="crispEdges" aria-hidden="true">
-            {CLOSE_GLYPH.map(([cx, cy, cw], i) => (
-              <rect key={i} x={cx} y={cy} width={cw} height={1} fill="currentColor" />
-            ))}
-          </svg>
+          <CloseGlyph />
         </button>
       </div>
       <div className={`retro-window__body${bodyClassName ? ` ${bodyClassName}` : ""}`}>{children}</div>

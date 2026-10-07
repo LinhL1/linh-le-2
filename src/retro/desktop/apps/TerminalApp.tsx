@@ -11,7 +11,7 @@ let nextId = 0;
 const withIds = (lines: TerminalLine[], prompt = false): Entry[] => lines.map((l) => ({ ...l, id: nextId++, prompt }));
 
 export function TerminalApp() {
-  const { openApp, closeApp, navigate } = useDesktopContext();
+  const { openApp, closeApp } = useDesktopContext();
   const [entries, setEntries] = useState<Entry[]>(() => withIds(BANNER));
   const [value, setValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
@@ -49,9 +49,6 @@ export function TerminalApp() {
         break;
       case "exit":
         closeApp("terminal");
-        break;
-      case "classic":
-        navigate("/classic");
         break;
     }
   };

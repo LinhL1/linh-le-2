@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Desktop } from "@/retro/desktop/Desktop";
 import { useMediaQuery, useRetroMode } from "@/retro/useRetroMode";
@@ -38,6 +38,17 @@ const Retro = () => {
   const navigate = useNavigate();
   const { mode, canUse3d, smallViewport, chooseMode, reportWebglFailure } = useRetroMode();
   const compact = useMediaQuery("(max-width: 639px)");
+  const canExit2d = mode === "2d" && canUse3d && !smallViewport;
+
+  // Esc from outside the desktop (e.g. focus still on <body> after load); the desktop handles its own Esc first.
+  useEffect(() => {
+    if (!canExit2d) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !(e.target as Element | null)?.closest?.(".retro-desktop")) chooseMode("3d");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canExit2d, chooseMode]);
 
   if (mode === "3d") {
     return (
@@ -56,7 +67,7 @@ const Retro = () => {
         mode="2d"
         compact={compact}
         navigate={navigate}
-        onSwitchTo3d={canUse3d && !smallViewport ? () => chooseMode("3d") : undefined}
+        onSwitchTo3d={canExit2d ? () => chooseMode("3d") : undefined}
       />
     </main>
   );

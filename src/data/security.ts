@@ -9,7 +9,7 @@ import { experiences } from "./experience";
 import { projects } from "./projects";
 
 // From Linh's own brief for this redesign.
-export const securityIntro = "Currently pivoting toward cybersecurity.";
+export const securityIntro = "Background in full-stack, pivoting to cyber";
 
 export interface SecurityHighlight {
   title: string;

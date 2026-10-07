@@ -4,6 +4,7 @@ import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-
 import { Vector3 } from "three";
 import { CameraRig } from "./CameraRig";
 import { GlbComputer } from "./GlbComputer";
+import { NightCity } from "./NightCity";
 import { ACTIVE_SCREEN, COMPUTER_MODEL } from "./model.config";
 import { ProceduralComputer } from "./ProceduralComputer";
 import { ScreenSlot } from "./ScreenSlot";
@@ -39,6 +40,16 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
   const initialCamera = useMemo(() => idleCameraPosition(window.innerWidth / window.innerHeight), []);
 
   const wasZoomed = useRef(false);
+
+  // R3F calls forceContextLoss() when the Canvas unmounts (e.g. switching to 2D). That fires
+  // `webglcontextlost` too, and must not be mistaken for a real GPU failure.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const zoomIn = useCallback(() => setZoomed(true), []);
   const zoomOut = useCallback(() => {
@@ -82,14 +93,11 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
         <div className="retro-hud__actions">
           {zoomed && (
             <button type="button" className="retro-btn" onClick={zoomOut}>
-              Power off <span className="retro-hud__key">Esc</span>
+              Exit <span className="retro-hud__key">Esc</span>
             </button>
           )}
           <button type="button" className="retro-btn" onClick={onSwitchTo2d}>
             2D mode
-          </button>
-          <button type="button" className="retro-btn" onClick={() => navigate("/classic")}>
-            Classic site
           </button>
         </div>
       </div>
@@ -100,22 +108,24 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
           eventPrefix="client"
           dpr={[1, 1.75]}
           frameloop="demand"
-          camera={{ fov: FOV, near: 0.1, far: 40, position: initialCamera.toArray() }}
+          camera={{ fov: FOV, near: 0.1, far: 90, position: initialCamera.toArray() }}
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           onCreated={({ gl }) => {
             gl.domElement.addEventListener("webglcontextlost", (e) => {
               e.preventDefault();
-              onFailure();
+              if (mounted.current) onFailure();
             });
           }}
         >
-          <ambientLight intensity={0.45} color="#fff1dc" />
-          <directionalLight position={[-3, 5, 4]} intensity={1.7} color="#ffe6c4" />
-          <directionalLight position={[4, 2.5, -2]} intensity={0.5} color="#a9c6ff" />
+          {/* Night room: dim warm key (desk lamp), cool city light spilling in from the window. */}
+          <ambientLight intensity={0.28} color="#c9c4ff" />
+          <directionalLight position={[-3, 5, 4]} intensity={1.25} color="#ffe2b8" />
+          <directionalLight position={[2.5, 3.5, -6]} intensity={0.9} color="#8a9cff" />
+          <directionalLight position={[-4, 2, -5]} intensity={0.45} color="#ff86bd" />
           {/* CRT glow spilling onto the desk and keyboard. */}
           <pointLight
             position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1] - 0.2, ACTIVE_SCREEN.position[2] + 0.7]}
-            intensity={active ? 1.4 : 0.8}
+            intensity={active ? 1.8 : 1.1}
             distance={3.2}
             color="#a8ffc4"
           />
@@ -124,6 +134,8 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             <Lightformer form="rect" intensity={0.8} position={[4, 2, 2]} scale={[3, 3, 1]} color="#dbe6ff" />
             <Lightformer form="ring" intensity={0.6} position={[0, 5, -3]} scale={2} color="#ffffff" />
           </Environment>
+
+          <NightCity />
 
           <group
             onClick={onComputerClick}
@@ -168,7 +180,7 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
       {!zoomed && (
         <div className="retro-hud retro-hud--bottom">
           <button ref={powerButtonRef} type="button" className="retro-btn retro-btn--primary" onClick={zoomIn}>
-            Turn on the computer
+            Click the computer to start
           </button>
           <p className="retro-hud__hint">Drag to look around · click the monitor to zoom in</p>
         </div>

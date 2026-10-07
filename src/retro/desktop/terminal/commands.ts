@@ -13,7 +13,7 @@ export interface TerminalLine {
   href?: string;
 }
 
-export type TerminalAction = { type: "open"; app: AppId } | { type: "clear" } | { type: "exit" } | { type: "classic" };
+export type TerminalAction = { type: "open"; app: AppId } | { type: "clear" } | { type: "exit" };
 
 export interface CommandResult {
   lines: TerminalLine[];
@@ -46,7 +46,6 @@ const HELP: [string, string][] = [
   ["ls / cat <file>", "browse the same info as files"],
   ["history", "previous commands"],
   ["clear", "clear the screen"],
-  ["classic", "go to the classic site"],
   ["exit", "close the terminal"],
 ];
 
@@ -141,7 +140,6 @@ const COMMANDS: Record<string, (args: string[], history: string[]) => CommandRes
     lines: history.length ? history.map((h, i) => line(`  ${pad(String(i + 1), 4)}${h}`)) : [line("(empty)", "muted")],
   }),
   clear: () => ({ lines: [], action: { type: "clear" } }),
-  classic: () => ({ lines: [line("loading classic site...", "muted")], action: { type: "classic" } }),
   exit: () => ({ lines: [], action: { type: "exit" } }),
   sudo: () => ({ lines: [line("permission denied: this incident will be reported ;)", "error")] }),
 };
