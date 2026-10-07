@@ -52,7 +52,7 @@ export function AboutApp() {
       <aside className="retro-panel" aria-label={funFact.label}>
         <p className="retro-kicker">{funFact.label}</p>
         <p>
-          <strong>{funFact.title}.</strong> {funFact.body}{" "}
+          <strong>{funFact.title}</strong> {funFact.body}{" "}
           <a href={funFact.link} target="_blank" rel="noopener noreferrer">
             Take a peek ↗
           </a>

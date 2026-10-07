@@ -41,7 +41,7 @@ export const projects: Project[] = [
     category: "hackathon",
     description:
       "joint hackathon project: Turn meeting minutes, whiteboard photos and architecture diagrams into one live map of your project: who owns what, what's blocked, what was decided, and what's overdue.",
-    year: "September 2026",
+    year: "SEP 2026",
     link: "https://github.com/saquer916/guava-hackathon",
     image: progress,
     tools: ["Cloudinary AI", "TypeScript", "HTML", "CSS"]
@@ -52,7 +52,7 @@ export const projects: Project[] = [
     category: "hackathon",
     description:
       "joint hackathon project: AI-assisted inbound-call triage prototype using Guava Voice AI and OpenEMR. It gathers structured history, applies transparent safety policies, recommends a routing disposition, and supports human-controlled scheduling decisions. It is not a diagnostic system and is not approved for clinical use.",
-    year: "September 2026",
+    year: "SEP 2026",
     link: "https://github.com/saquer916/guava-hackathon",
     image: sprout,
     tools: ["Python", "OpenERM", "Guava Voice AI"]
@@ -63,7 +63,7 @@ export const projects: Project[] = [
     category: "personal",
     description:
       "Daily gratitude app. Local to your device, works offline, perfect for the commute.",
-    year: "July 2026",
+    year: "JUL 2026",
     link: "https://github.com/LinhL1/glade",
     image: glade,
     tools: ["JavaScript", "HTML", "CSS"]
@@ -74,7 +74,7 @@ export const projects: Project[] = [
     category: "personal",
     description:
       "All in one browser extension to manage your evergreen task list and work sessions. Mosaics to track your productivity. Handy pomodoro built in.",
-    year: "June 2026",
+    year: "JUN 2026",
     link: "https://github.com/LinhL1/toodly",
     image: toodly,
     tools: ["JavaScript", "HTML", "CSS"],
@@ -92,37 +92,14 @@ export const projects: Project[] = [
         "Shipped a fully working extension that consolidates task tracking and focus sessions into a single always-available surface.",
     },
   },
-  {
-    title: "Jot",
-    type: "Web Browser Extension",
-    category: "personal",
-    description:
-      "Common placing + quick notes extension tool",
-    year: "April 2026",
-    link: "https://github.com/LinhL1/jot-extension",
-    image: jot,
-    tools: ["JavaScript", "HTML", "CSS", "Gemini API"],
-    featured: true,
-    caseStudy: {
-      role: "Solo builder — product scoping, design, and engineering",
-      problem:
-        "Quick notes, reflection, quotes get lost across scattered notes apps, docs, and sticky notes.",
-      approach: [
-        "Focused the extension on two core jobs: fast capture of quick notes and reliable recall of commonly-used (\"common placing\") snippets",
-        "Integrated the Gemini API to help surface and organize notes with less manual tagging from the user, also useful for further dev of features",
-        "Kept the interaction model to a couple of clicks so it never interrupts the task the user is actually trying to do",
-      ],
-      impact:
-        "Built and shipped a working extension that cuts the friction of reusing common text and capturing quick notes while browsing.",
-    },
-  },
+ 
   {
     title: "Auralink",
     type: "Music Hack Space 2026: Biometric Instrument",
     category: "hackathon",
     description:
       "Joint hackathon project: An adaptive bio-music instrument that translates interpersonal biometrics into generative, synchronized musical structures",
-    year: "2026",
+    year: "JUN 2026",
     link: "https://github.com/willdaly/Auralink",
     image: auralink,
     tools: ["Python", "Google Deepmind Magenta"]
@@ -149,6 +126,30 @@ export const projects: Project[] = [
       ],
       impact:
         "Delivered a deployed, publicly usable web app that gives the IN Network a self-serve education tool they can point learners to directly.",
+    },
+  },
+   {
+    title: "Jot",
+    type: "Web Browser Extension",
+    category: "personal",
+    description:
+      "Common placing + quick notes extension tool",
+    year: "APR 2026",
+    link: "https://github.com/LinhL1/jot-extension",
+    image: jot,
+    tools: ["JavaScript", "HTML", "CSS", "Gemini API"],
+    featured: true,
+    caseStudy: {
+      role: "Solo builder — product scoping, design, and engineering",
+      problem:
+        "Quick notes, reflection, quotes get lost across scattered notes apps, docs, and sticky notes.",
+      approach: [
+        "Focused the extension on two core jobs: fast capture of quick notes and reliable recall of commonly-used (\"common placing\") snippets",
+        "Integrated the Gemini API to help surface and organize notes with less manual tagging from the user, also useful for further dev of features",
+        "Kept the interaction model to a couple of clicks so it never interrupts the task the user is actually trying to do",
+      ],
+      impact:
+        "Built and shipped a working extension that cuts the friction of reusing common text and capturing quick notes while browsing.",
     },
   },
   {

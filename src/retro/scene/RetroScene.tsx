@@ -41,6 +41,16 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
 
   const wasZoomed = useRef(false);
 
+  // R3F calls forceContextLoss() when the Canvas unmounts (e.g. switching to 2D). That fires
+  // `webglcontextlost` too, and must not be mistaken for a real GPU failure.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const zoomIn = useCallback(() => setZoomed(true), []);
   const zoomOut = useCallback(() => {
     setZoomed(false);
@@ -83,14 +93,11 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
         <div className="retro-hud__actions">
           {zoomed && (
             <button type="button" className="retro-btn" onClick={zoomOut}>
-              Power off <span className="retro-hud__key">Esc</span>
+              Exit <span className="retro-hud__key">Esc</span>
             </button>
           )}
           <button type="button" className="retro-btn" onClick={onSwitchTo2d}>
             2D mode
-          </button>
-          <button type="button" className="retro-btn" onClick={() => navigate("/classic")}>
-            Classic site
           </button>
         </div>
       </div>
@@ -106,7 +113,7 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
           onCreated={({ gl }) => {
             gl.domElement.addEventListener("webglcontextlost", (e) => {
               e.preventDefault();
-              onFailure();
+              if (mounted.current) onFailure();
             });
           }}
         >
@@ -173,7 +180,7 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
       {!zoomed && (
         <div className="retro-hud retro-hud--bottom">
           <button ref={powerButtonRef} type="button" className="retro-btn retro-btn--primary" onClick={zoomIn}>
-            Turn on the computer
+            Click the computer to start
           </button>
           <p className="retro-hud__hint">Drag to look around · click the monitor to zoom in</p>
         </div>

@@ -20,16 +20,66 @@
   --r-link: #2f4b7c;
   --r-phosphor: #8dff8d;
   --r-term-bg: #0c110c;
-  /* Silkscreen is a strict bitmap font: only use it at multiples of 8px (16, 24, 64). */
+  /* Pixel fonts: the HUD and boot screen outside the computer, plus the desktop "home screen"
+     (icon labels, wallpaper, taskbar, idle overlay).
+     Silkscreen is a strict bitmap font: only use it at multiples of 8px (16, 24, 64). */
   --r-display: "Silkscreen", "VT323", ui-monospace, monospace;
-  /* VT323 stays legible at small sizes, so labels and buttons use it. */
   --r-pixel: "VT323", ui-monospace, monospace;
-  --r-term: "VT323", ui-monospace, monospace;
   --r-body: "Inter", system-ui, sans-serif;
+  /* Window content: Tahoma, the classic Windows 2000/ME system font (everything inside the
+     computer that isn't the home screen above or terminal-style text). Installed on Windows and macOS; iOS falls back to Verdana (its wider sibling).
+     Only regular and bold exist, so stick to font-weight 400/700. */
+  --r-win: Tahoma, Verdana, "DejaVu Sans", "Segoe UI", sans-serif;
+  --r-term: "VT323", ui-monospace, monospace;
   --r-bevel-out: inset -1px -1px 0 var(--r-ink), inset 1px 1px 0 var(--r-hi), inset -2px -2px 0 var(--r-shadow),
     inset 2px 2px 0 var(--r-face);
   --r-bevel-in: inset 1px 1px 0 var(--r-shadow), inset -1px -1px 0 var(--r-hi), inset 2px 2px 0 var(--r-ink),
     inset -2px -2px 0 var(--r-face);
+}
+
+/* Pixel-art cursors: SVGs drawn on a pixel grid, 2 CSS px per pixel (K = black, W = white).
+   To edit, change the grid in the comment and regenerate the path data to match.
+   On :root because they cover the whole retro page, boot loader included (see "Cursors" below). */
+:root {
+  --r-cursor-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='32' viewBox='0 0 10 16' shape-rendering='crispEdges'%3E%3Cpath fill='%23000' d='M0 0h1v1h-1zM0 1h2v1h-2zM0 2h1v1h-1zM2 2h1v1h-1zM0 3h1v1h-1zM3 3h1v1h-1zM0 4h1v1h-1zM4 4h1v1h-1zM0 5h1v1h-1zM5 5h1v1h-1zM0 6h1v1h-1zM6 6h1v1h-1zM0 7h1v1h-1zM7 7h1v1h-1zM0 8h1v1h-1zM8 8h1v1h-1zM0 9h1v1h-1zM5 9h5v1h-5zM0 10h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM0 12h2v1h-2zM4 12h1v1h-1zM7 12h1v1h-1zM0 13h1v1h-1zM5 13h1v1h-1zM8 13h1v1h-1zM5 14h1v1h-1zM8 14h1v1h-1zM6 15h2v1h-2z'/%3E%3Cpath fill='%23fff' d='M1 2h1v1h-1zM1 3h2v1h-2zM1 4h3v1h-3zM1 5h4v1h-4zM1 6h5v1h-5zM1 7h6v1h-6zM1 8h7v1h-7zM1 9h4v1h-4zM1 10h2v1h-2zM4 10h2v1h-2zM1 11h1v1h-1zM5 11h2v1h-2zM5 12h2v1h-2zM6 13h2v1h-2zM6 14h2v1h-2z'/%3E%3C/svg%3E") 1 1, default;
+  /*
+     K.........
+     KK........
+     KWK.......
+     KWWK......
+     KWWWK.....
+     KWWWWK....
+     KWWWWWK...
+     KWWWWWWK..
+     KWWWWWWWK.
+     KWWWWKKKKK
+     KWWKWWK...
+     KWK.KWWK..
+     KK..KWWK..
+     K....KWWK.
+     .....KWWK.
+     ......KK..
+  */
+  --r-cursor-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='34' viewBox='0 0 15 17' shape-rendering='crispEdges'%3E%3Cpath fill='%23000' d='M4 0h2v1h-2zM3 1h1v1h-1zM6 1h1v1h-1zM3 2h1v1h-1zM6 2h1v1h-1zM3 3h1v1h-1zM6 3h1v1h-1zM3 4h1v1h-1zM6 4h3v1h-3zM3 5h1v1h-1zM6 5h1v1h-1zM9 5h3v1h-3zM3 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM12 6h2v1h-2zM0 7h2v1h-2zM3 7h1v1h-1zM6 7h1v1h-1zM9 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM0 8h1v1h-1zM2 8h2v1h-2zM12 8h1v1h-1zM14 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM3 10h1v1h-1zM14 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM2 12h1v1h-1zM13 12h1v1h-1zM2 13h1v1h-1zM13 13h1v1h-1zM3 14h1v1h-1zM12 14h1v1h-1zM3 15h1v1h-1zM12 15h1v1h-1zM3 16h10v1h-10z'/%3E%3Cpath fill='%23fff' d='M4 1h2v1h-2zM4 2h2v1h-2zM4 3h2v1h-2zM4 4h2v1h-2zM4 5h2v1h-2zM7 5h2v1h-2zM4 6h2v1h-2zM7 6h2v1h-2zM10 6h2v1h-2zM4 7h2v1h-2zM7 7h2v1h-2zM10 7h2v1h-2zM13 7h1v1h-1zM1 8h1v1h-1zM4 8h8v1h-8zM13 8h1v1h-1zM1 9h2v1h-2zM4 9h10v1h-10zM2 10h1v1h-1zM4 10h10v1h-10zM2 11h12v1h-12zM3 12h10v1h-10zM3 13h10v1h-10zM4 14h8v1h-8zM4 15h8v1h-8z'/%3E%3C/svg%3E") 9 1, pointer;
+  /*
+     ....KK.........
+     ...KWWK........
+     ...KWWK........
+     ...KWWK........
+     ...KWWKKK......
+     ...KWWKWWKKK...
+     ...KWWKWWKWWKK.
+     KK.KWWKWWKWWKWK
+     KWKKWWWWWWWWKWK
+     KWWKWWWWWWWWWWK
+     .KWKWWWWWWWWWWK
+     .KWWWWWWWWWWWWK
+     ..KWWWWWWWWWWK.
+     ..KWWWWWWWWWWK.
+     ...KWWWWWWWWK..
+     ...KWWWWWWWWK..
+     ...KKKKKKKKKK..
+  */
 }
 
 /* ---------- Desktop shell ---------- */
@@ -42,30 +92,42 @@
   height: 100%;
   overflow: hidden;
   color: var(--r-ink);
-  font-family: var(--r-body);
-  font-size: 14px;
-  line-height: 1.55;
+  font-family: var(--r-win);
+  font-size: 13px;
+  line-height: 1.5;
   background-color: var(--r-desk);
   background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     radial-gradient(ellipse at 30% 20%, rgba(124, 154, 74, 0.25), transparent 60%),
     linear-gradient(160deg, var(--r-desk), var(--r-desk-2));
   background-size: 4px 4px, 100% 100%, 100% 100%;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='22' viewBox='0 0 20 22' shape-rendering='crispEdges'%3E%3Cpath d='M1 1v16l4-4 3 7 3-1-3-7h6z' fill='%23fff' stroke='%23000' stroke-width='1.2'/%3E%3C/svg%3E")
-      1 1,
-    auto;
   -webkit-font-smoothing: antialiased;
 }
 
+/* index.css gives every h1–h6 the classic site's display font; inside the computer headings use the
+   desktop font. :where() keeps specificity at one class so rules like .retro-panel__title still win. */
+.retro-desktop :where(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+}
+
 .retro-desktop--3d {
-  /* Fixed-resolution screen; the 3D scene scales it to fit the CRT. */
-  width: 960px;
-  height: 720px;
+  /* Fixed-resolution screen; the 3D scene scales it to fit the CRT. Keep in sync with SCREEN_PIXELS. */
+  width: 800px;
+  height: 600px;
   box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.55);
 }
 
-.retro-desktop a,
-.retro-desktop button {
-  cursor: pointer;
+/* ---------- Cursors ---------- */
+
+/* The whole retro page (`/`) uses the pixel cursors; App.tsx puts .retro-cursor on <html> there.
+   Title bars (grab), the terminal (text) and inputs keep their own cursors. */
+html.retro-cursor,
+html.retro-cursor body {
+  cursor: var(--r-cursor-arrow);
+}
+
+html.retro-cursor :is(a, button, [role="button"]),
+html.retro-cursor .retro-scene.is-hovering {
+  cursor: var(--r-cursor-pointer);
 }
 
 .retro-desktop__area {
@@ -81,6 +143,7 @@
   margin: 0;
   font-family: var(--r-display);
   font-size: 64px;
+  font-weight: 400;
   line-height: 1;
   color: var(--r-butter);
   opacity: 0.12;
@@ -88,14 +151,41 @@
   user-select: none;
 }
 
+/* 2D only: back to the 3D desk. Sits above windows (z = open order) but under the taskbar. */
+.retro-desktop__exit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: var(--r-face);
+  box-shadow: var(--r-bevel-out);
+  color: var(--r-ink);
+}
+
+.retro-desktop__exit:active {
+  box-shadow: var(--r-bevel-in);
+}
+
+/* Centred on the whole screen; above windows and the taskbar, below the CRT overlay. */
 .retro-desktop__idle {
   position: absolute;
-  inset: auto 0 38% 0;
-  margin: 0 auto;
+  top: 50%;
+  left: 50%;
+  z-index: 100001;
+  margin: 0;
   width: max-content;
+  transform: translate(-50%, -50%);
   padding: 10px 18px;
   font-family: var(--r-display);
   font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
   color: var(--r-butter);
   background: rgba(10, 16, 12, 0.72);
   border: 2px solid var(--r-butter);
@@ -179,8 +269,8 @@
   background: var(--r-face);
   box-shadow: var(--r-bevel-out);
   color: var(--r-ink);
-  font-family: var(--r-pixel);
-  font-size: 19px;
+  font-family: var(--r-win);
+  font-size: 12px;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
@@ -260,9 +350,8 @@
   flex: 1;
   margin: 0;
   overflow: hidden;
-  font-family: var(--r-display);
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -313,26 +402,19 @@
 }
 
 .retro-kicker {
-  font-family: var(--r-pixel);
-  font-size: 17px;
-  line-height: 1.1;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--r-ink-soft);
 }
 
 .retro-h {
-  font-family: var(--r-display);
   font-size: 24px;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .retro-lede {
   margin-top: 4px;
-  font-family: var(--font-body, Georgia, serif);
-  font-size: 17px;
-  font-style: italic;
-  line-height: 1.4;
+  font-size: 14px;
 }
 
 .retro-muted {
@@ -340,8 +422,7 @@
 }
 
 .retro-small {
-  font-size: 12.5px;
-  line-height: 1.5;
+  font-size: 12px;
   color: var(--r-ink-soft);
 }
 
@@ -399,7 +480,7 @@
 }
 
 .retro-panel__lede {
-  font-weight: 500;
+  font-weight: 700;
   color: #fff;
 }
 
@@ -421,13 +502,13 @@
 .retro-tag {
   display: inline-block;
   margin-left: 6px;
-  padding: 0 5px;
-  font-family: var(--r-pixel);
-  font-size: 16px;
-  line-height: 16px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 15px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  vertical-align: 2px;
+  vertical-align: 1px;
   color: var(--r-term-bg);
   background: var(--r-phosphor);
 }
@@ -444,16 +525,13 @@
 }
 
 .retro-stats dt {
-  font-family: var(--r-pixel);
-  font-size: 17px;
-  line-height: 1.1;
-  text-transform: uppercase;
+  font-size: 12px;
   color: var(--r-ink-soft);
 }
 
 .retro-stats dd {
   margin: 0;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .retro-timeline {
@@ -479,9 +557,8 @@
 
 .retro-entry__title {
   margin: 0;
-  font-family: var(--r-body);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -522,9 +599,8 @@
 }
 
 .retro-chips li {
-  padding: 0 7px;
-  font-family: var(--r-pixel);
-  font-size: 17px;
+  padding: 2px 7px;
+  font-size: 12px;
   background: var(--r-face);
   box-shadow: var(--r-bevel-out);
 }
@@ -532,7 +608,6 @@
 .retro-projects {
   display: grid;
   grid-template-columns: 200px 1fr;
-  grid-template-rows: 1fr auto;
   gap: 12px 16px;
   height: 100%;
   min-height: 0;
@@ -556,12 +631,6 @@
   padding-right: 4px;
 }
 
-.retro-projects__footer {
-  grid-column: 1 / -1;
-  padding-top: 8px;
-  border-top: 1px dashed var(--r-face-dark);
-}
-
 .retro-filelist {
   margin: 0;
   padding: 2px;
@@ -578,7 +647,6 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: 13px;
   color: var(--r-ink);
   text-align: left;
 }
@@ -592,20 +660,15 @@
   color: #fffbe8;
 }
 
-.retro-filelist__name {
-  font-weight: 500;
-}
-
 .retro-filelist__meta {
   flex: none;
-  font-family: var(--r-pixel);
-  font-size: 16px;
+  font-size: 12px;
   opacity: 0.75;
 }
 
 .retro-email {
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 20px;
+  line-height: 1.3;
   word-break: break-all;
 }
 
@@ -710,6 +773,12 @@
   list-style: none;
 }
 
+/* The desktop "home screen" (icons, wallpaper, taskbar) keeps the pixel fonts; Tahoma is for window content. */
+.retro-taskbar .retro-btn {
+  font-family: var(--r-pixel);
+  font-size: 19px;
+}
+
 .retro-taskbar__task {
   max-width: 150px;
   justify-content: flex-start;
@@ -800,10 +869,6 @@
   touch-action: none;
 }
 
-.retro-scene.is-hovering {
-  cursor: pointer;
-}
-
 .retro-hud {
   position: absolute;
   z-index: 10;
@@ -860,7 +925,9 @@
   gap: 8px;
 }
 
+/* HUD buttons are outside the computer, so they keep the pixel font. */
 .retro-hud .retro-btn {
+  font-family: var(--r-pixel);
   font-size: 19px;
 }
 

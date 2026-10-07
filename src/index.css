@@ -209,7 +209,7 @@
 }
 
 /* Cursor effect — desktop only. CursorEffect adds .custom-cursor to <html> while mounted
-   (classic routes only; the retro desktop keeps its own pixel cursor). */
+   (classic routes only; `/` uses the pixel cursors from retro.css via html.retro-cursor). */
 @layer base {
   @media (min-width: 768px) {
     html.custom-cursor * {

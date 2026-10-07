@@ -4,7 +4,7 @@ import { DesktopContext, type DesktopContextValue } from "./DesktopContext";
 import { PixelIcon } from "./icons";
 import { Taskbar } from "./Taskbar";
 import { topWindow, useDesktop, type AppId } from "./useDesktop";
-import { Window } from "./Window";
+import { CloseGlyph, Window } from "./Window";
 import "../retro.css";
 
 export interface DesktopProps {
@@ -22,7 +22,22 @@ export interface DesktopProps {
 }
 
 // Used until the desktop has been measured (and in jsdom, which has no layout).
-const FALLBACK_AREA = { width: 960, height: 684 };
+const FALLBACK_AREA = { width: 800, height: 564 };
+
+const LINE_HEIGHT_PX = 16;
+
+/** Nearest ancestor of `target` (up to `root`) that can still scroll vertically in the wheel's direction. */
+function findScroller(target: EventTarget | null, deltaY: number, root: HTMLElement): HTMLElement | null {
+  for (let el = target instanceof Element ? target : null; el && el !== root; el = el.parentElement) {
+    if (!(el instanceof HTMLElement)) continue;
+    const { overflowY } = getComputedStyle(el);
+    if (overflowY !== "auto" && overflowY !== "scroll") continue;
+    const max = el.scrollHeight - el.clientHeight;
+    if (max <= 0) continue;
+    if ((deltaY < 0 && el.scrollTop > 0) || (deltaY > 0 && el.scrollTop < max)) return el;
+  }
+  return null;
+}
 
 export function Desktop({
   mode,
@@ -55,6 +70,24 @@ export function Desktop({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // In 3D the desktop sits inside drei's `transform-style: preserve-3d` layer, and Chromium won't
+  // wheel-scroll anything in a preserve-3d context. So scroll the element under the cursor ourselves.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (mode !== "3d" || !root) return;
+    const onWheel = (e: WheelEvent) => {
+      const unit = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT_PX : e.deltaMode === WheelEvent.DOM_DELTA_PAGE ? root.clientHeight : 1;
+      const dy = e.deltaY * unit;
+      const scroller = findScroller(e.target, dy, root);
+      if (!scroller) return;
+      // preventDefault so browsers that *can* scroll here natively don't scroll twice.
+      e.preventDefault();
+      scroller.scrollTop += dy;
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, [mode]);
 
   // `inert` isn't in React 18's prop types, so set it directly.
   useEffect(() => {
@@ -91,7 +124,8 @@ export function Desktop({
     if (e.key !== "Escape") return;
     const top = topWindow(state);
     if (top) closeApp(top.id);
-    else onPowerOff?.();
+    else if (onPowerOff) onPowerOff();
+    else if (mode === "2d") onSwitchTo3d?.();
   };
 
   const ctx = useMemo<DesktopContextValue>(
@@ -120,14 +154,20 @@ export function Desktop({
                   </button>
                 </li>
               ))}
-              <li>
-                <button type="button" className="retro-icon" onClick={() => navigate("/classic")}>
-                  <PixelIcon name="classic" />
-                  <span className="retro-icon__label">Classic Site</span>
-                </button>
-              </li>
             </ul>
           </nav>
+
+          {mode === "2d" && onSwitchTo3d && (
+            <button
+              type="button"
+              className="retro-desktop__exit"
+              aria-label="Exit 2D mode"
+              title="Exit 2D mode (Esc)"
+              onClick={onSwitchTo3d}
+            >
+              <CloseGlyph />
+            </button>
+          )}
 
           {state.windows.map((win) => {
             const app = APP_BY_ID[win.id];
@@ -152,13 +192,14 @@ export function Desktop({
               </Window>
             );
           })}
-
-          {!active && (
-            <p className="retro-desktop__idle" aria-hidden="true">
-              click the screen to start
-            </p>
-          )}
         </div>
+
+        {/* Outside the area (which stops at the taskbar) so it centres on the whole screen. */}
+        {!active && (
+          <p className="retro-desktop__idle" aria-hidden="true">
+            click the screen to start
+          </p>
+        )}
 
         <Taskbar
           windows={state.windows}

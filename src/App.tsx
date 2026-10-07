@@ -19,13 +19,18 @@ const LOADER_DURATION = 2100;
 // The retro boot screen reveals its lines one by one, so it stays up a little longer.
 const RETRO_LOADER_DURATION = 4600;
 
-// Route-aware chrome: the retro desktop (`/`) gets the boot-screen loader and keeps its own
-// pixel cursor, so the custom CursorEffect only runs on the classic pages.
+// Route-aware chrome: the retro desktop (`/`) gets the boot-screen loader and the pixel cursors
+// (html.retro-cursor, styled in retro.css), so the custom CursorEffect only runs on the classic pages.
 const RouteChrome = () => {
   const { pathname } = useLocation();
   const isRetro = pathname === "/";
   const [loaderVariant] = useState<"classic" | "retro">(isRetro ? "retro" : "classic");
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("retro-cursor", isRetro);
+    return () => document.documentElement.classList.remove("retro-cursor");
+  }, [isRetro]);
 
   useEffect(() => {
     const duration = loaderVariant === "retro" ? RETRO_LOADER_DURATION : LOADER_DURATION;

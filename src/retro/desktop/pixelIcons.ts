@@ -128,24 +128,6 @@ export const ICONS = {
     BLANK,
     BLANK,
   ],
-  classic: [
-    BLANK,
-    ".KKKKKKKKKKKKKK.",
-    ".KWWWWWWWWWWWWK.",
-    ".KWLLLLLLLLLLWK.",
-    ".KWLLLLLLLYYLWK.",
-    ".KWLLLLLLLYYLWK.",
-    ".KWLLLLSLLLLLWK.",
-    ".KWLLLSSSLLLLWK.",
-    ".KWLLSSSSSLSLWK.",
-    ".KWLSSSSSSSSSWK.",
-    ".KWWWWWWWWWWWWK.",
-    ".KKKKKKKKKKKKKK.",
-    BLANK,
-    BLANK,
-    BLANK,
-    BLANK,
-  ],
 } satisfies Record<string, string[]>;
 
 export type IconName = keyof typeof ICONS;

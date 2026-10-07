@@ -56,10 +56,56 @@ describe("<Desktop />", () => {
     expect(screen.getByRole("dialog", { name: "Contact" })).toBeInTheDocument();
   });
 
-  it("links to the classic site", () => {
-    const { navigate } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Classic Site" }));
-    expect(navigate).toHaveBeenCalledWith("/classic");
+  it("exits 2D mode with the corner × button", () => {
+    const onSwitchTo3d = vi.fn();
+    setup({ onSwitchTo3d });
+    fireEvent.click(screen.getByRole("button", { name: "Exit 2D mode" }));
+    expect(onSwitchTo3d).toHaveBeenCalledTimes(1);
+  });
+
+  it("exits 2D mode with Escape once no windows are open", () => {
+    const onSwitchTo3d = vi.fn();
+    setup({ onSwitchTo3d });
+    fireEvent.click(screen.getByRole("button", { name: "Contact" }));
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Contact" }), { key: "Escape" });
+    expect(onSwitchTo3d).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("button", { name: "About Me" }), { key: "Escape" });
+    expect(onSwitchTo3d).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no exit button when 3D isn't available", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: "Exit 2D mode" })).not.toBeInTheDocument();
+  });
+
+  it("scrolls window content with the mouse wheel in 3D (Chromium can't inside preserve-3d)", () => {
+    render(<Desktop mode="3d" navigate={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "About Me" }));
+    const body = screen.getByRole("dialog", { name: "About Me" }).querySelector<HTMLElement>(".retro-window__body")!;
+    // jsdom has no layout or stylesheet: fake a scrollable box.
+    body.style.overflowY = "auto";
+    Object.defineProperty(body, "scrollHeight", { configurable: true, value: 900 });
+    Object.defineProperty(body, "clientHeight", { configurable: true, value: 400 });
+
+    const target = body.querySelector("p") ?? body;
+    const wheel = new WheelEvent("wheel", { deltaY: 120, bubbles: true, cancelable: true });
+    target.dispatchEvent(wheel);
+    expect(body.scrollTop).toBe(120);
+    expect(wheel.defaultPrevented).toBe(true);
+  });
+
+  it("leaves wheel scrolling to the browser in 2D", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "About Me" }));
+    const body = screen.getByRole("dialog", { name: "About Me" }).querySelector<HTMLElement>(".retro-window__body")!;
+    body.style.overflowY = "auto";
+    Object.defineProperty(body, "scrollHeight", { configurable: true, value: 900 });
+    Object.defineProperty(body, "clientHeight", { configurable: true, value: 400 });
+
+    const wheel = new WheelEvent("wheel", { deltaY: 120, bubbles: true, cancelable: true });
+    body.dispatchEvent(wheel);
+    expect(body.scrollTop).toBe(0);
+    expect(wheel.defaultPrevented).toBe(false);
   });
 
   it("is inert while inactive (3D, zoomed out)", () => {

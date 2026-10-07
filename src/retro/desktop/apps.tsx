@@ -26,7 +26,7 @@ export const APPS: AppDefinition[] = [
   { id: "about", title: "About Me", label: "About Me", icon: "about", width: 600, height: 520, Component: AboutApp },
   { id: "experience", title: "Experience", label: "Experience", icon: "experience", width: 560, height: 500, Component: ExperienceApp },
   { id: "community", title: "Community", label: "Community", icon: "community", width: 580, height: 500, Component: CommunityApp },
-  { id: "projects", title: "Projects", label: "Projects", icon: "projects", width: 720, height: 520, Component: ProjectsApp },
+  { id: "projects", title: "Projects", label: "Projects", icon: "projects", width: 640, height: 520, Component: ProjectsApp },
   { id: "contact", title: "Contact", label: "Contact", icon: "contact", width: 460, height: 420, Component: ContactApp },
   {
     id: "terminal",

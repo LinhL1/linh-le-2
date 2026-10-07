@@ -1,10 +1,11 @@
 # Credits
 
 ## Fonts
-- **Silkscreen** by Jason Kottke, SIL Open Font License 1.1, loaded from Google Fonts. Used for retro window titles and headings.
-- **VT323** by Peter Hull, SIL Open Font License 1.1, loaded from Google Fonts. Used for the terminal and retro UI labels.
+- **Silkscreen** by Jason Kottke, SIL Open Font License 1.1, loaded from Google Fonts. Used for the brand text outside the retro computer and the desktop wallpaper text.
+- **VT323** by Peter Hull, SIL Open Font License 1.1, loaded from Google Fonts. Used for the terminal, the desktop icon labels and taskbar, and the HUD/boot screen around the retro computer.
 - **Source Serif 4** and **Inter**, SIL Open Font License 1.1, loaded from Google Fonts. Used for body text.
 - **ZT Bros Oskon 90s** (free version), bundled in `src/assets/fonts/oksan/`. Used for display text on the classic site.
+- **Tahoma / Verdana** (window content inside the retro computer) are the visitor's own system fonts; nothing is bundled or downloaded.
 
 ## 3D model
 The computer on `/` is built procedurally from three.js primitives in
