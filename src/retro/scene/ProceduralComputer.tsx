@@ -2,21 +2,24 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { RoundedBox } from "@react-three/drei";
 import {
   BoxGeometry,
+  BufferGeometry,
   CatmullRomCurve3,
   Color,
+  DoubleSide,
   ExtrudeGeometry,
+  Float32BufferAttribute,
   InstancedMesh,
   Material,
   MeshStandardMaterial,
   Object3D,
   Path,
-  Quaternion,
   Shape,
   SphereGeometry,
   TubeGeometry,
   Vector3,
 } from "three";
-import { PROCEDURAL_SCREEN } from "./model.config";
+import { ConvexGeometry } from "three/examples/jsm/geometries/ConvexGeometry.js";
+import { PROCEDURAL_SCREEN, type Vec3 } from "./model.config";
 
 // A beige 90s desktop built from primitives — no external assets. Layout (world units):
 // desk top at y=0, base unit under the monitor, keyboard and mouse in front.
@@ -34,11 +37,16 @@ const PALETTE = {
   ledGreen: "#5dff7a",
   ledAmber: "#ffb340",
   mousepad: "#3f5a3a",
-  floppy: "#2f4b7c",
-  vase: "#9fb7b0",
-  stem: "#4f6b2f",
-  bloomA: "#f0d98a",
-  bloomB: "#c77aa8",
+  // Pushed more saturated than they look on paper: the dim, warm night lighting washes pale colours to beige.
+  noteYellow: "#fff08a",
+  noteSage: "#9fc28c",
+  terracotta: "#b5633b",
+  terracottaDark: "#8e4a2c",
+  soil: "#3a2a1e",
+  leaf: "#4c7a3d",
+  leafYoung: "#79a85a",
+  // Light maple, kept a touch warmer than the beige case so the bird doesn't blend into it.
+  bird: "#d8a872",
 };
 
 /** useMemo + dispose on unmount, for geometries/materials shared across meshes. */
@@ -164,46 +172,180 @@ function Cord({ points, material }: { points: [number, number, number][]; materi
   return <mesh geometry={geo.tube} material={material} />;
 }
 
-const BLOOMS: { tip: [number, number, number]; color: string }[] = [
-  { tip: [0.02, 0.62, 0.0], color: PALETTE.bloomA },
-  { tip: [-0.1, 0.55, 0.05], color: PALETTE.bloomB },
-  { tip: [0.11, 0.5, -0.04], color: PALETTE.bloomB },
-  { tip: [-0.03, 0.47, -0.08], color: PALETTE.bloomA },
+/**
+ * A unit leaf (1 long on +Y, 1 wide on X) built vertex by vertex: a strip of rows, each row being
+ * left edge / midrib / right edge. Having a midrib vertex lets the leaf fold into a shallow V, and
+ * many rows let it arch smoothly. The face points +Z; the tip curls toward +Z.
+ */
+function leafGeometry(rows = 10) {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i <= rows; i++) {
+    const t = i / rows;
+    const half = 0.5 * Math.sin(Math.PI * Math.pow(t, 0.7)); // pointed at both ends, widest ~40% up
+    const arch = 0.35 * t * t; // tip curls outward
+    const fold = 0.25 * half; // edges lift toward -Z, cupping the leaf
+    positions.push(-half, t, arch - fold, 0, t, arch, half, t, arch - fold);
+    if (i < rows) {
+      const a = i * 3; // this row: a (left), a+1 (midrib), a+2 (right); next row starts at b
+      const b = a + 3;
+      indices.push(a, a + 1, b, a + 1, b + 1, b, a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
+    }
+  }
+  const geo = new BufferGeometry();
+  geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// Outer leaves are long and lean far out; inner ones are shorter, more upright and lighter (newer growth).
+const LEAVES = [
+  ...Array.from({ length: 8 }, (_, i) => ({
+    yaw: (i * 2 * Math.PI) / 8 + 0.2,
+    tilt: 0.85 + (i % 3) * 0.08,
+    length: 0.4 + (i % 2) * 0.05,
+    width: 0.17,
+    young: false,
+  })),
+  ...Array.from({ length: 5 }, (_, i) => ({
+    yaw: (i * 2 * Math.PI) / 5 + 0.6,
+    tilt: 0.3 + (i % 2) * 0.12,
+    length: 0.34,
+    width: 0.13,
+    young: true,
+  })),
 ];
 
-function Vase() {
-  const stems = useMemo(() => {
-    const up = new Vector3(0, 1, 0);
-    const base = new Vector3(0, 0.3, 0);
-    return BLOOMS.map(({ tip }) => {
-      const end = new Vector3(...tip);
-      const dir = end.clone().sub(base);
-      return {
-        length: dir.length(),
-        mid: base.clone().add(end).multiplyScalar(0.5).toArray() as [number, number, number],
-        quat: new Quaternion().setFromUnitVectors(up, dir.normalize()),
-      };
-    });
-  }, []);
+const POT_TOP = 0.275;
+
+function PottedPlant() {
+  const res = useDisposable(() => ({
+    leaf: leafGeometry(),
+    // DoubleSide: a leaf is a single sheet, and both sides are visible from the camera.
+    leafMat: new MeshStandardMaterial({ color: PALETTE.leaf, roughness: 0.55, side: DoubleSide }),
+    youngLeafMat: new MeshStandardMaterial({ color: PALETTE.leafYoung, roughness: 0.55, side: DoubleSide }),
+  }));
 
   return (
     <group position={[-1.75, 0, 0.35]}>
-      <mesh position={[0, 0.16, 0]}>
-        <cylinderGeometry args={[0.09, 0.12, 0.32, 24]} />
-        <meshStandardMaterial color={PALETTE.vase} roughness={0.25} />
+      {/* Saucer, pot, rim, soil */}
+      <mesh position={[0, 0.0125, 0]}>
+        <cylinderGeometry args={[0.13, 0.115, 0.025, 28]} />
+        <meshStandardMaterial color={PALETTE.terracottaDark} roughness={0.85} />
       </mesh>
-      {BLOOMS.map(({ tip, color }, i) => (
-        <group key={i}>
-          <mesh position={stems[i].mid} quaternion={stems[i].quat}>
-            <cylinderGeometry args={[0.006, 0.006, stems[i].length, 6]} />
-            <meshStandardMaterial color={PALETTE.stem} />
-          </mesh>
-          <mesh position={tip}>
-            <icosahedronGeometry args={[0.055, 0]} />
-            <meshStandardMaterial color={color} roughness={0.6} flatShading />
-          </mesh>
+      <mesh position={[0, 0.145, 0]}>
+        <cylinderGeometry args={[0.12, 0.09, 0.24, 28]} />
+        <meshStandardMaterial color={PALETTE.terracotta} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.26, 0]}>
+        <cylinderGeometry args={[0.135, 0.13, 0.05, 28]} />
+        <meshStandardMaterial color={PALETTE.terracotta} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, POT_TOP, 0]}>
+        <cylinderGeometry args={[0.118, 0.118, 0.01, 24]} />
+        <meshStandardMaterial color={PALETTE.soil} roughness={1} />
+      </mesh>
+      {/* Each leaf: the outer group turns it around the pot (yaw), the mesh leans it outward (tilt).
+          Child rotations apply first, so the leaf leans toward +Z and then gets swung into place. */}
+      {LEAVES.map(({ yaw, tilt, length, width, young }, i) => (
+        <group key={i} position={[0, POT_TOP, 0]} rotation={[0, yaw, 0]}>
+          <mesh
+            geometry={res.leaf}
+            material={young ? res.youngLeafMat : res.leafMat}
+            position={[0, 0, 0.02]}
+            rotation={[tilt, 0, 0]}
+            scale={[width, length, length]}
+          />
         </group>
       ))}
+    </group>
+  );
+}
+
+// Low-poly geometric bird (a faceted wren), sitting on the base unit to the right of the monitor.
+// Designed in a unit frame: faces +X, sits on y = 0, about 1.3 long; BIRD_SCALE sizes it.
+const BIRD_SCALE = 0.17;
+
+/** Deterministic pseudo-random number in [-1, 1], so the facets are irregular but identical on every load. */
+function wobble(n: number) {
+  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
+/** A sparse, slightly jittered cloud of points on an ellipsoid: a top point plus staggered rings. */
+function ellipsoidPoints(center: Vec3, radii: Vec3, ringAngles: number[], perRing: number, seed: number) {
+  const [cx, cy, cz] = center;
+  const [rx, ry, rz] = radii;
+  const points = [new Vector3(cx, cy + ry, cz)];
+  ringAngles.forEach((phi, ring) => {
+    for (let i = 0; i < perRing; i++) {
+      // Every other ring is rotated half a step, so the hull gets triangles rather than long strips.
+      const theta = ((i + (ring % 2) * 0.5) / perRing) * Math.PI * 2;
+      const k = 1 + 0.08 * wobble(seed + ring * 31 + i);
+      points.push(
+        new Vector3(
+          cx + rx * Math.sin(phi) * Math.cos(theta) * k,
+          cy + ry * Math.cos(phi) * k,
+          cz + rz * Math.sin(phi) * Math.sin(theta) * k,
+        ),
+      );
+    }
+  });
+  return points;
+}
+
+/**
+ * Three convex hulls (body, head + beak, tail), each shrink-wrapped around a few points. Separate
+ * hulls keep the neck crease and the dip before the raised tail, which a single hull would fill in.
+ */
+function geoBirdGeometries() {
+  const p = (...xyz: Vec3) => new Vector3(...xyz);
+  const body = [
+    // Plump and a little longer than tall.
+    ...ellipsoidPoints([0, 0.36, 0], [0.46, 0.32, 0.31], [0.5, 1.0, 1.5, 2.0, 2.5], 7, 1),
+    // Small foot pad, so it sits flat like a figurine.
+    ...Array.from({ length: 5 }, (_, i) => {
+      const a = (i / 5) * Math.PI * 2;
+      return p(0.04 + 0.17 * Math.cos(a), 0, 0.12 * Math.sin(a));
+    }),
+  ];
+  const head = [
+    // Up and forward, overlapping the front of the body.
+    ...ellipsoidPoints([0.33, 0.67, 0], [0.22, 0.21, 0.19], [0.6, 1.2, 1.9, 2.5], 6, 50),
+    // Short pointed beak.
+    p(0.71, 0.68, 0),
+    p(0.52, 0.74, 0.05),
+    p(0.52, 0.74, -0.05),
+    p(0.52, 0.62, 0),
+  ];
+  const tail = [
+    // Base, buried in the back of the body...
+    p(-0.15, 0.55, 0.14),
+    p(-0.15, 0.55, -0.14),
+    p(-0.25, 0.32, 0.1),
+    p(-0.25, 0.32, -0.1),
+    // ...rising up and back to a thin, cocked tip.
+    p(-0.6, 0.98, 0.06),
+    p(-0.6, 0.98, -0.06),
+    p(-0.7, 0.9, 0),
+    p(-0.52, 1.02, 0),
+  ];
+  return { body: new ConvexGeometry(body), head: new ConvexGeometry(head), tail: new ConvexGeometry(tail) };
+}
+
+function GeoBird({ position, yaw }: { position: Vec3; yaw: number }) {
+  const res = useDisposable(() => ({
+    ...geoBirdGeometries(),
+    // flatShading: one normal per triangle, so every facet catches the light differently (the low-poly look).
+    mat: new MeshStandardMaterial({ color: PALETTE.bird, roughness: 0.65, flatShading: true }),
+  }));
+
+  return (
+    <group position={position} rotation={[0, yaw, 0]} scale={BIRD_SCALE}>
+      <mesh geometry={res.body} material={res.mat} />
+      <mesh geometry={res.head} material={res.mat} />
+      <mesh geometry={res.tail} material={res.mat} />
     </group>
   );
 }
@@ -446,18 +588,21 @@ export function ProceduralComputer({ poweredOn }: ProceduralComputerProps) {
         ]}
       />
 
-      {/* A few floppies */}
+      {/* Two sticky-note pads: sage green underneath, light yellow on top */}
       <group position={[-1.65, 0.008, 1.35]} rotation={[0, 0.35, 0]}>
-        {[0, 1].map((i) => (
-          <mesh key={i} position={[i * 0.03, i * 0.012, i * -0.02]} rotation={[0, i * 0.2, 0]}>
+        {[PALETTE.noteSage, PALETTE.noteYellow].map((color, i) => (
+          <mesh key={color} position={[i * 0.03, i * 0.012, i * -0.02]} rotation={[0, i * 0.2, 0]}>
             <boxGeometry args={[0.3, 0.01, 0.3]} />
-            <meshStandardMaterial color={i ? "#7a3a62" : PALETTE.floppy} roughness={0.5} />
+            <meshStandardMaterial color={color} roughness={0.85} />
           </mesh>
         ))}
       </group>
 
-      {/* Small vase of flowers (fun fact: florist) */}
-      <Vase />
+      <PottedPlant />
+
+      {/* On the base unit's top (y = 0.42), in the gap between the monitor (x ≤ 0.83) and the case edge (x = 1.05).
+          Head to the left, turned slightly toward the camera so it reads in near-profile. */}
+      <GeoBird position={[0.94, 0.42, 0.24]} yaw={-2.8} />
     </group>
   );
 }

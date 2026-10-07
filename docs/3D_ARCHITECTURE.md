@@ -47,11 +47,11 @@ What three.js actually holds (simplified; lights and helpers omitted). Positions
 Scene
 ├─ NightCity <group>
 │  ├─ sky plane              150×64 at (0, 8, −46)          MeshBasic + canvas gradient
-│  ├─ skyline layer ×3       at z −36 / −23 / −12.5          MeshBasic + canvas, alphaTest
-│  ├─ BostonLandmarks <group>
-│  │  ├─ Prudential <group>  (−0.4, −2.45, −11) scale 0.6     box tower, penthouse, mast, red beacon
-│  │  ├─ 111 Huntington      (0.35, −2.3, −10)  scale 0.6     oval cylinder, 18 crown fins, dome, ring
-│  │  └─ John Hancock        (−8.9, −2.34, −11.5) rotY 0.55   thin slab
+│  ├─ skyline layer ×3       at z −36 / −23 / −12.5          MeshBasic + softened canvas, transparent
+│  ├─ BostonLandmarks <group>  painted, softened cutout planes (MeshBasic, transparent), one per tower
+│  │  ├─ prudential          z = −11, x −0.91…0.23       slab + side sliver, penthouse, mast, red beacon
+│  │  ├─ 111-huntington      z = −10, x −0.12…0.82       shaded "cylinder", finned crown, dome, ring
+│  │  └─ hancock             z = −11.5, x −9.55…−8.25    dark-glass slab with sheen
 │  ├─ wall boxes ×4          around the window opening, z = −1.95 (oversized: ±40 wide)
 │  └─ window frame, mullions ×2, sill
 ├─ interactive <group>
@@ -68,8 +68,9 @@ Scene
 │  │  ├─ Keyboard <group>    (−0.05, 0, 1.5) tilted 0.05 rad: body + InstancedMesh (91 keys)
 │  │  ├─ cords ×2            TubeGeometry along CatmullRom curves
 │  │  ├─ mousepad, Mouse <group> (egg body, skirt, seams, wheel)
-│  │  ├─ floppies <group>
-│  │  └─ Vase <group>        (−1.75, 0, 0.35): vase, 4 stems (quaternion-aligned), 4 blooms
+│  │  ├─ sticky notes <group> sage pad under a light-yellow pad
+│  │  ├─ PottedPlant <group> (−1.75, 0, 0.35): saucer, pot, rim, soil, 13 leaves (one shared leafGeometry; yaw group → tilted mesh)
+│  │  └─ GeoBird <group>     (0.94, 0.42, 0.24) on the base unit, right of the monitor, scale 0.17: 3 ConvexGeometry hulls (body, head+beak, tail), flat-shaded light wood
 │  └─ Html <group>           at ACTIVE_SCREEN.position (0, 1.36, 0.36)
 │     └─ occlusion plane     1.28 × 0.96, invisible, cuts the hole and receives clicks
 └─ ContactShadows <group>    (0, 0.002, 0.4)

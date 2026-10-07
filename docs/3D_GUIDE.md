@@ -86,15 +86,15 @@ SIDE VIEW (looking from the right, +X toward you)          TOP VIEW (looking dow
  │   │  │      CRT screen centre (0, 1.36, 0.36)            z≈−10…−11.5  Boston landmarks
  │   │  │      ┌───┐                                        z=−1.95 back wall + window
  │   │  │      │   │▏← glass faces +Z                    ┌──────────── desk ─────────────┐
- │  wall       │   │                                     │ vase       base unit/monitor   │
- 0 ──┴──┴──────┴───┴─────── desk top (y = 0) ──── → z    │ floppies    keyboard     mouse │
+ │  wall       │   │                                     │ plant      base unit/monitor   │
+ 0 ──┴──┴──────┴───┴─────── desk top (y = 0) ──── → z    │ notes       keyboard     mouse │
     −1.95     −0.25  0.36          1.5 keyboard          └────────────────────────────────┘
                                                             front (+Z) — camera is out here
 ```
 
 - The **desk top is the y=0 plane** ("desk top at y=0" comment in `ProceduralComputer.tsx`).
 - **+Z points from the wall toward the visitor**; the monitor faces +Z; the keyboard is in front (z≈1.5).
-- **X is left/right**: vase on the left (−1.75), mouse on the right (+1.62).
+- **X is left/right**: potted plant on the left (−1.75), mouse on the right (+1.62).
 - The night city is far down −Z (up to −46), *behind* the wall, visible through the window.
 
 Conversions happen in exactly three places:
@@ -160,7 +160,7 @@ A `Vector3` is three numbers `(x, y, z)`. The same type represents two different
 - a **direction / offset** (an arrow: "which way and how far"), e.g. "from the screen, straight out".
 
 ### Why it matters
-Camera placement, zoom targets, the vase stems, all of it is vector arithmetic. Knowing a few
+Camera placement, zoom targets, the cord curves, all of it is vector arithmetic. Knowing a few
 operations lets you place anything relative to anything else.
 
 ### How it works
@@ -200,21 +200,21 @@ A *normal* is a unit direction perpendicular to a surface. `(0,0,1)` is "out of 
 rotation; `applyEuler` turns it with the screen, so a tilted screen in a `.glb` still gets a
 head-on camera.
 
-**Stems of the flowers: subtract, length, midpoint, normalize** ([ProceduralComputer.tsx](../src/retro/scene/ProceduralComputer.tsx) `Vase`):
+**Drawing a line segment with a cylinder** (a pattern worth knowing, not currently used in the scene;
+an earlier flower vase did this for its stems): place the cylinder at the segment's midpoint, make it the
+segment's length, and rotate its axis onto the direction:
 ```ts
-const dir = end.clone().sub(base);              // arrow from stem base to bloom
-length: dir.length(),                           // stem length
-mid: base.clone().add(end).multiplyScalar(0.5), // cylinder is centred, so place it at the midpoint
-quat: new Quaternion().setFromUnitVectors(up, dir.normalize()), // rotate +Y to point along the stem
+const dir = end.clone().sub(start);                         // arrow from start to end
+const length = dir.length();                                // cylinder height
+const mid = start.clone().add(end).multiplyScalar(0.5);     // cylinders are centred on their origin
+const quat = new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), dir.normalize()); // +Y → dir
 ```
-That's a pattern worth memorising: **to draw a line segment with a cylinder, place it at the midpoint,
-scale it to the length, and rotate its axis onto the direction.**
 
 **"Have we arrived?"** uses squared distance (CameraRig): `camera.position.distanceToSquared(position) < 1e-6`
 means "closer than 0.001 units", without computing a square root every frame.
 
 **Dot and cross products** are *not* called directly in this project's code (CONFIRMED by search), but they run inside
-the library calls it uses: `setFromUnitVectors` uses both, `camera.lookAt` uses cross products to
+the library calls it uses: `camera.lookAt` uses cross products to
 build the camera's orientation, and every lit material computes `dot(surfaceNormal, lightDirection)`
 in its shader to decide how bright a pixel is.
 
@@ -249,12 +249,16 @@ This is how you move, turn and size anything. In R3F you set them as props.
 ### Where it appears in this project
 - **Euler rotations** everywhere: the keyboard is tilted `rotation={[0.05, 0, 0]}`; the mouse is yawed `rotationY={-0.12}`;
   knobs are cylinders rotated `[Math.PI/2, 0, 0]` so their axis points at the viewer (a cylinder's axis is +Y by default).
-- **Quaternions**: the vase stems (`setFromUnitVectors`, above). That's the one place a rotation is
-  derived from a direction rather than typed in.
+- **Composing two rotations with nested groups** (`PottedPlant` leaves): the outer `<group rotation={[0, yaw, 0]}>`
+  turns a leaf around the pot; the inner `<mesh rotation={[tilt, 0, 0]}>` leans it outward. The child's rotation
+  happens first (in the parent's frame), so every leaf leans "toward +Z" and is then swung into place, and its
+  flat face always ends up pointing away from the pot. `setFromUnitVectors` (see §3) can't guarantee that: it
+  aims the leaf's length correctly but leaves its spin around that axis to chance, so some leaves would end up edge-on.
+- **Quaternions**: not used in the scene code right now (CONFIRMED by search). Reach for
+  `setFromUnitVectors` when only a direction matters (a stem, a cable), and nested Euler rotations when the
+  object's spin around that direction also matters (a leaf, a sign).
 - **Non-uniform scale**: the mouse skirt is a unit cylinder scaled `[rx*1.02, 0.012, rz*1.01]` into a flat oval;
-  the 111 Huntington tower is a cylinder squashed with `scale={[1, 1, 0.82]}` to make it oval in plan.
-- **Scale on a group**: each Boston landmark group has `scale={LANDMARK_SCALE}` (0.6), which shrinks
-  every child, including their positions inside the group.
+  each plant leaf is the same unit leaf scaled `[width, length, length]`, so one geometry makes leaves of every size.
 - **Screen rotation** is stored as Euler angles in `ScreenRect.rotation` and turned into a direction with `applyEuler`.
 
 ### Example
@@ -394,10 +398,12 @@ camera={{ fov: 35, near: 0.1, far: 90, position: initialCamera.toArray() }}
 fov 35° is fairly narrow, which flattens perspective and makes the desk read like a product shot (INFERRED intent).
 `far = 90` comfortably contains the sky plane at z = −46.
 
-**Idle framing**: `idleCameraPosition(aspect)` uses the formula above for the desk's half-extents
-(`SCENE_HALF = {width: 2.1, height: 1.15}`), takes the larger of the height-fit and width-fit
-distances, but never less than 5. On a 16:9 window the minimum wins, putting the camera at roughly
-`(1.65, 2.78, 4.70)`: above, to the right and in front of the desk, looking at `(0, 0.95, 0.35)`. This is
+**Idle framing**: `idleCameraPosition(aspect)` uses the formula above for the computer's half-extents
+(`SCENE_HALF = {width: 1.35, height: 1.05}`, the case + monitor, not the whole desk), takes the larger of
+the height-fit and width-fit distances, but never less than `IDLE_MIN_DISTANCE = 3.8`. On any window wider
+than about 1.13:1 the minimum wins, putting the camera at roughly `(1.26, 2.34, 3.66)`: above, to the right
+and in front of the computer, looking at `(0, 0.95, 0.35)`. The plant, mouse and the keyboard's front edge
+are allowed to crop so the computer stays the focus. Zooming out returns to this same pose. This is
 computed **once on mount** (`useMemo([])`); resizing later does not re-fit the idle view.
 
 **Orbit limits** (`<OrbitControls>`): pan and zoom disabled; azimuth limited to −0.55…0.65 rad
@@ -491,12 +497,34 @@ The computer is **procedural**: built entirely in code, with no model file (CONF
 
 | Technique | What it does | Where |
 |---|---|---|
-| Built-in primitives | `boxGeometry`, `cylinderGeometry`, `sphereGeometry`, `planeGeometry`, `icosahedronGeometry`, `torusGeometry` via JSX `args` | everywhere |
+| Built-in primitives | `boxGeometry`, `cylinderGeometry`, `sphereGeometry`, `planeGeometry`, `torusGeometry` via JSX `args` | everywhere |
 | drei `RoundedBox` | box with rounded edges | base unit, keyboard body, buttons |
 | **Vertex editing** | loop over `geometry.attributes.position`, move vertices, then `computeVertexNormals()` | `taperedBox` (CRT tube: back face smaller than front), `Mouse` body (sphere squashed into an egg) |
 | **Extrusion** | 2D `Shape` (with a `Path` hole) pushed out into 3D with a bevel | `bezelGeometry` (monitor frame with the 4:3 opening) |
 | **Tubes along curves** | `TubeGeometry` around a `CatmullRomCurve3` through points | keyboard/mouse cords, mouse seams |
 | **Instancing** | one geometry + material drawn N times with per-instance matrix and colour | 91 keycaps in `Keyboard` |
+| **Hand-built `BufferGeometry`** | write the vertex positions and the triangle list (`setIndex`) yourself | `leafGeometry` (plant leaves) |
+| **Convex hull** | the tightest flat-faced solid around a cloud of points (`ConvexGeometry`, from `three/examples/jsm`) | `geoBirdGeometries` (low-poly bird: body, head, tail) |
+| **One geometry, many scales** | a unit-sized shape reused by every mesh, each with its own `scale` | the 13 plant leaves share one `leafGeometry` |
+
+**Convex hulls for low-poly shapes** (`GeoBird` in [ProceduralComputer.tsx](../src/retro/scene/ProceduralComputer.tsx)):
+*what* — `new ConvexGeometry(points)` shrink-wraps a list of `Vector3` points in the smallest solid with only flat faces.
+*Why* — a faceted "origami" sculpture is exactly that: a few dozen points and flat triangles between them. Placing points is far
+easier than listing triangles by hand (compare `leafGeometry`). *How* — `ellipsoidPoints` drops a sparse, slightly jittered
+(`wobble`, deterministic) set of points on an egg shape; the body, the head + beak, and the tail are **three separate hulls**,
+because a hull can't have dents: one hull would fill in the neck and the dip before the raised tail. The material uses
+`flatShading: true` so each triangle gets one normal and its own tone. *Where it comes from* — `three/examples/jsm/...` ships with
+the `three` package itself (the "addons"), so it's not an extra dependency. *Mental model* — **pin the points, the hull stretches the skin.**
+
+**Building a geometry from scratch** (`leafGeometry` in [ProceduralComputer.tsx](../src/retro/scene/ProceduralComputer.tsx)):
+*what* — instead of reshaping a primitive, you list every vertex and say which three make each triangle.
+*Why* — no primitive is a pointed, cupped, arching leaf, and reshaping a plane would need as many tweaks.
+*How* — the leaf is a ladder of rows up its length; each row has 3 vertices (left edge, midrib, right edge).
+Each row is narrower or wider (`half`), sits further out the higher it is (`arch`), and its edges lift
+above the midrib (`fold`). Between two rows you get two quads = four triangles, listed as vertex
+numbers in `indices`. `computeVertexNormals()` then works out lighting directions from those triangles.
+*Mental model* — **positions are the dots, the index is the join-the-dots order.** The order also decides
+which side counts as the front, which is why the leaf material uses `side: DoubleSide` (a single sheet seen from both sides).
 
 **Why `computeVertexNormals()` after moving vertices:** normals were calculated for the original
 shape. If you stretch a box into a taper but keep the old normals, lighting will look wrong (faces
@@ -542,13 +570,15 @@ Changing "how something looks" is almost always a material change.
 
 | Material | Lit by lights? | Used for | Key properties used |
 |---|---|---|---|
-| `MeshStandardMaterial` | Yes (**PBR**) | computer, desk, keyboard, mouse, vase, wall/frame | `color`, `roughness`, `metalness`, `emissive`, `emissiveIntensity`, `flatShading` |
-| `MeshBasicMaterial` | **No** (flat colour/texture) | sky, skyline layers, landmarks | `map`, `toneMapped: false`, `alphaTest`, `transparent`, `opacity`, `side: DoubleSide` |
+| `MeshStandardMaterial` | Yes (**PBR**) | computer, desk, keyboard, mouse, potted plant, sticky notes, bird, wall/frame | `color`, `roughness`, `metalness`, `emissive`, `emissiveIntensity`, `side: DoubleSide` (leaves), `flatShading` (bird) |
+| `MeshBasicMaterial` | **No** (flat colour/texture) | sky, skyline layers, landmark cutouts | `map`, `toneMapped: false`, `transparent` |
 | `ShaderMaterial` | custom | drei `Html`'s invisible occlusion plane (outputs transparent black) | library-internal |
 
 **PBR (physically based rendering)** in two dials:
 - **roughness** 0…1: 0 = mirror-smooth (sharp reflections), 1 = matte. The glass is `0.2`, the wood `0.78`, the beige plastic `0.5–0.6`.
-- **metalness** 0…1: whether the surface is a metal. Almost everything here is 0 (plastic/wood); the glass has `0.1`.
+- **metalness** 0…1: whether the surface is a metal. Everything here is 0 (plastic/wood/ceramic); the glass has `0.1`.
+- **flatShading**: `true` lights each triangle with one flat normal instead of blending normals across the surface. Only the
+  geometric bird uses it, to get its faceted look.
 
 PBR materials also reflect the **environment map** (see §11), which is what gives the plastic its
 soft highlights even without bright lamps.
@@ -560,7 +590,17 @@ soft highlights even without bright lamps.
 "no image assets"): a 2D `<canvas>` is painted with buildings and windows, then wrapped as a
 `CanvasTexture`. Important details:
 - `tex.colorSpace = SRGBColorSpace`: tells three.js the canvas colours are normal screen colours, so they aren't washed out.
-- `alphaTest: 0.5`: pixels with alpha < 0.5 are discarded. The skyline canvases have transparent sky, so only buildings remain and farther layers show between them.
+- `transparent: true` on the skyline layers: the canvases have a transparent sky, so only buildings remain and farther layers show between them.
+  Blending (rather than `alphaTest`, which keeps or discards each pixel outright) is what lets the softened silhouettes keep their soft edges.
+- **Fake depth of field with `soften(canvas, factor)`**: *what* — after painting, each city canvas is shrunk by `factor` and stretched
+  back with smoothing, which blurs it. *Why* — the camera is "focused" on the computer, so a slightly blurry city reads as distant
+  and stays in the background instead of showing hard-edged window pixels. A real depth-of-field effect is a post-processing pass
+  that re-blurs the whole screen every rendered frame; this blur is paid once, at load. *Where* — skyline layers and landmarks use factor 3,
+  the sky (stars) factor 2. *Limit* — it only blurs textures, not geometry. That's why the Boston landmarks are **painted
+  cutouts** (a transparent plane per tower at its real position and depth, drawn by `LANDMARKS[].paint`) instead of 3D boxes:
+  at ~14 units away a flat cutout looks the same, it still shifts against the skyline when you orbit (parallax), and it can be blurred.
+  The painting uses `ctx.setTransform(...)` so the paint functions draw in world units with y up.
+- Lit windows are drawn at `WINDOW_ALPHA` (0.3–0.7 opacity) so the city never competes with the screen.
 - `toneMapped: false`: skip the renderer's tone mapping so the night colours render exactly as painted.
 - `RepeatWrapping`, `anisotropy = 4`: tiling and sharper textures at glancing angles.
 - A seeded random generator (`rng(seed)`, mulberry32) makes the "random" skyline identical on every visit.

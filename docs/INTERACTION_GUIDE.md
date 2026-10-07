@@ -29,8 +29,8 @@ Contents:
 | "2D mode" | HUD button | switch to the flat desktop |
 | Clicks, typing, drags *on the screen* | the DOM desktop (normal React events) | windows, apps, terminal (only once `active`) |
 
-There is no hit-testing for anything else in the scene: the city, the wall, the desk and the vase
-are part of the computer group (desk, vase) or not interactive at all (city, wall).
+There is no hit-testing for anything else in the scene: the city, the wall, the desk and the plant
+are part of the computer group (desk, plant) or not interactive at all (city, wall).
 
 ---
 
@@ -79,7 +79,7 @@ const hits = raycaster.intersectObjects(scene.children, true);
 In R3F you almost never write that yourself; the event system does it for you.
 
 ### Concrete example in this scene
-When idle on a wide window, the camera sits at about `(1.65, 2.78, 4.70)` looking at `(0, 0.95, 0.35)`.
+When idle on a wide window, the camera sits at about `(1.26, 2.34, 3.66)` looking at `(0, 0.95, 0.35)`.
 A click in the exact centre of the window produces a ray along that look direction. It passes
 through the bezel opening and hits the screen plane near its lower edge, around `(0, 0.96, 0.36)`
 (INFERRED by hand calculation from the constants; useful as a sanity check, not a spec).
@@ -182,7 +182,7 @@ sequenceDiagram
     S->>S: CameraRig flies in → active = true
 ```
 
-**What can be clicked:** every mesh in `ProceduralComputer` (desk, vase and keyboard included,
+**What can be clicked:** every mesh in `ProceduralComputer` (desk, plant and keyboard included,
 since they're all inside the group) plus the invisible screen plane. Clicking the window or the
 city does nothing (they have no handlers).
 

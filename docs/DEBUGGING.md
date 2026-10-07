@@ -50,7 +50,7 @@ Remove temporary helpers before committing.
 ## 3D positioning issues
 
 **Symptom:** object appears in the wrong place / floating / sunk into the desk.
-- **Causes:** local vs world confusion (its parent group is offset/rotated/scaled); primitives are **centred** (a box of height `h` at `y=0` is half below the desk); landmark groups are scaled by 0.6.
+- **Causes:** local vs world confusion (its parent group is offset/rotated/scaled); primitives are **centred** (a box of height `h` at `y=0` is half below the desk); a landmark painted outside its `bounds` is clipped off its cutout canvas.
 - **Inspect:** the parent chain in the JSX; `r3f.scene.getObjectByName(...)` (set a `name` prop) and `.getWorldPosition(new THREE.Vector3())`.
 - **Verify:** drop an `<axesHelper>` inside the parent group to see its local frame.
 - **Fix:** lift by half the height (`y = h/2`), or move the parent rather than the child.
@@ -125,7 +125,8 @@ Remove temporary helpers before committing.
 - **Fix:** call `geometry.computeVertexNormals()` after moving vertices; check lights; try `MeshBasicMaterial` to rule out lighting.
 
 **Symptom:** skyline shows rectangles of sky colour or hard edges.
-- **Causes:** `alphaTest` removed, or texture without transparency.
+- **Causes:** `transparent: true` removed from the skyline materials, or texture without transparency. (Hard but
+  clean edges instead of soft ones means `soften()` was skipped or `alphaTest` was added back.)
 
 **Symptom:** GPU memory grows after navigating back and forth.
 - **Causes:** geometries/materials/textures created with `new` and not disposed.

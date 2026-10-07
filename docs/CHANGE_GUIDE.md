@@ -19,7 +19,7 @@ Universal 3D test pass after any scene change (run `npm run dev`, open `/`):
 |---|---|---|
 | Different idle angle | `IDLE_DIRECTION` in [RetroScene.tsx](../src/retro/scene/RetroScene.tsx) | it's normalized, so only the direction matters |
 | Look at a different point | `IDLE_TARGET` | also the orbit pivot and the zoom-out target |
-| Closer/farther idle view | `SCENE_HALF` (what must fit) or the `Math.max(5, …)` minimum | computed once at mount |
+| Closer/farther idle view | `SCENE_HALF` (what must fit) or `IDLE_MIN_DISTANCE` (3.8; this one wins on landscape windows) | computed once at mount; zoom-out returns to it |
 | Wider/narrower lens | `FOV` | affects idle fit **and** zoom distance (both use `camera.fov`) |
 | Orbit range | `minAzimuthAngle`/`maxAzimuthAngle`/`minPolarAngle`/`maxPolarAngle` on `<OrbitControls>` | radians; polar 0 = straight down from above |
 | Allow zoom/pan | `enableZoom`/`enablePan` | zooming changes the distance, so the `returnTo` logic still works; panning moves the target, which CameraRig overwrites on zoom-out |
@@ -34,7 +34,7 @@ Universal 3D test pass after any scene change (run `npm run dev`, open `/`):
 
 **Where:** the `position` prop of the object or its parent `<group>`.
 **Concepts:** [local vs world](3D_GUIDE.md#1-coordinate-systems), [parent/child](3D_GUIDE.md#5-parentchild-transforms-and-the-scene-graph).
-**Modify:** e.g. move the vase: `<group position={[-1.75, 0, 0.35]}>` in `Vase`. Keep `y = 0` for things that sit on the desk (desk top is y = 0).
+**Modify:** e.g. move the plant: `<group position={[-1.75, 0, 0.35]}>` in `PottedPlant`. Keep `y = 0` for things that sit on the desk (desk top is y = 0).
 **Could break:**
 - **The monitor and screen are coupled.** Don't move monitor parts independently of `PROCEDURAL_SCREEN`; move the screen rect instead (it drives bezel, glass, zoom, glow and the desktop).
 - `ContactShadows` is rendered once (`frames={1}`): the shadow stays where the object *was* until reload. Remove `frames` (costlier) or reload to check.
@@ -47,7 +47,8 @@ Universal 3D test pass after any scene change (run `npm run dev`, open `/`):
 **Where:** `rotation={[x, y, z]}` (radians) on the mesh/group.
 **Concepts:** [Euler angles & quaternions](3D_GUIDE.md#4-transformations-position-rotation-scale).
 **Modify:** turn the mouse: `rotationY={-0.12}` on `<Mouse>`. To point something *along a direction*, use
-`new Quaternion().setFromUnitVectors(new Vector3(0,1,0), dir.normalize())` like the vase stems.
+`new Quaternion().setFromUnitVectors(new Vector3(0,1,0), dir.normalize())`; if the object's spin around that
+direction matters too (a flat leaf), nest a yaw group around a tilted mesh like the `PottedPlant` leaves.
 **Could break:** rotation is around the object's **own origin**. Primitives are centred, so a box rotates
 about its middle, not its base; wrap it in a group and offset it if you need a different pivot. Rotating the
 screen rect means the zoom pose follows (it uses `applyEuler`), which is what you want.
@@ -56,7 +57,8 @@ screen rect means the zoom pose follows (it uses `applyEuler`), which is what yo
 ## Change an object's appearance
 
 **Where:** its material. In `ProceduralComputer` most parts share materials from `mats` (`useDisposable`)
-and colours from `PALETTE`. In `NightCity` look at `WINDOW_COLORS`, `LAYERS[].body/haze/litChance`, and `towerTexture` options.
+and colours from `PALETTE`. In `NightCity` look at `WINDOW_COLORS`, `WINDOW_ALPHA` (how bright lit windows are), `LAYERS[].body/haze/litChance/win`,
+the `paintWindows` options inside each `LANDMARKS[].paint` (more `cols`/`rows` = smaller windows), and the `soften(canvas, factor)` calls (higher = blurrier city).
 **Concepts:** [materials](3D_GUIDE.md#10-materials-and-textures).
 **Modify:**
 - recolour all beige plastic → `PALETTE.beige` (shared, so many parts change at once);
@@ -94,9 +96,9 @@ export function Mug() {
 **Where:** an R3F handler on the object's group. If the object is inside the computer group, call `e.stopPropagation()` so the zoom doesn't also fire.
 **Concepts:** [R3F events](INTERACTION_GUIDE.md#3-how-react-three-fiber-does-it), [click vs drag](INTERACTION_GUIDE.md#4-this-projects-pointer-pipeline), [frame loop](3D_ARCHITECTURE.md#frame-loop-and-reactivity).
 
-*Sketch: make the vase wiggle when clicked, without zooming:*
+*Sketch: make the plant wiggle when clicked, without zooming:*
 ```tsx
-function Vase() {
+function PottedPlant() {
   const ref = useRef<Group>(null);
   const wiggle = useRef(0);                         // ref, not state: changes every frame
   const invalidate = useThree((s) => s.invalidate);
@@ -155,11 +157,11 @@ cost GPU constantly; respect `reducedMotion` (available from `useRetroMode`).
 4. Tune `screen` (`position`, `rotation`, `width`, `height` with width:height = 4:3) until the desktop sits exactly on the glass. Keep the model's glass *behind* `screen.position` (z-fighting, see [3D_GUIDE §12](3D_GUIDE.md#12-depth-z-fighting-and-the-hole-in-the-canvas)).
 5. Credit it in `CREDITS.md` and, for CC-BY, visibly on the site.
 
-**Concepts:** [assets](3D_GUIDE.md#13-assets-and-3d-models). **Could break:** the procedural desk, keyboard, mouse and vase disappear (they're part of `ProceduralComputer`), so the model needs its own desk or you add one; a model with its own lights/cameras is ignored; large models slow the first load (the `Suspense` fallback is `null`, so the computer just pops in). **Test:** zoom in and check edges of the desktop against the bezel from the close-up and idle views.
+**Concepts:** [assets](3D_GUIDE.md#13-assets-and-3d-models). **Could break:** the procedural desk, keyboard, mouse, plant and sticky notes disappear (they're part of `ProceduralComputer`), so the model needs its own desk or you add one; a model with its own lights/cameras is ignored; large models slow the first load (the `Suspense` fallback is `null`, so the computer just pops in). **Test:** zoom in and check edges of the desktop against the bezel from the close-up and idle views.
 
 ## Modify the environment (window, skyline, wall)
 
-**Where:** [NightCity.tsx](../src/retro/scene/NightCity.tsx): `WINDOW` (opening), `WALL_Z`, `LAYERS` (depth `z`, size, seed, density, colours, haze), `BostonLandmarks` (positions/heights), `skyTexture` (gradient, stars).
+**Where:** [NightCity.tsx](../src/retro/scene/NightCity.tsx): `WINDOW` (opening), `WALL_Z`, `LAYERS` (depth `z`, size, seed, density, colours, haze), `LANDMARKS` (each tower's `z`, world-unit `bounds` and `paint` function), `skyTexture` (gradient, stars).
 **Could break:** `ROOM_COLOR` must match `.retro-page { background }` in `retro.css` or a seam appears when orbiting. Landmark positions were tuned so they show through the window panes in the default view (CONFIRMED comment); moving the camera may require re-tuning. Changing a `seed` changes the whole skyline.
 **Test:** orbit to every limit and look through the window; check edges of the skyline layers never show.
 

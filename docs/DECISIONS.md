@@ -251,9 +251,18 @@ Wall, window and Boston skyline are generated: canvas-painted textures from a de
 ### Why
 Documented in `NightCity.tsx`: "Everything is generated at runtime on `<canvas>` (no image assets), from a fixed seed so the skyline is stable." Boston landmarks tie to "Based in Boston, MA" in the profile (inferred).
 
+**Update (2026-10-07):** the city is deliberately a *subtle* backdrop (owner's request: the window pixels were "large and obvious").
+Textures are blurred once at load with `soften()` (shrink + stretch the canvas) as a fake depth of field, lit windows are
+smaller and dimmer (`WINDOW_ALPHA`), skyline layers blend (`transparent`) instead of `alphaTest`, and the 111 Huntington crown is dimmed.
+The owner then asked for the blur on the *whole* window, so the three landmarks were converted from 3D meshes into painted,
+softened cutout planes at their original depths (blur can't reach geometry). This also cut ~25 meshes/draw calls.
+A real depth-of-field post-process was not used: it costs a full-screen pass every rendered frame and would also blur nothing
+the canvas blur can't already fake for flat, distant layers.
+
 ### Tradeoffs
 + Zero asset downloads; tweakable; consistent between visits.
 − Startup cost of painting ~5 canvases (small); landmark placement is tuned to the default camera view.
+− Landmarks are flat: orbiting to the azimuth limits shows no new sides of the towers (barely visible at that distance).
 
 ### Current Status
 Appropriate.

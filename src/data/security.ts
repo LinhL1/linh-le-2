@@ -9,24 +9,30 @@ import { experiences } from "./experience";
 import { projects } from "./projects";
 
 // From Linh's own brief for this redesign.
-export const securityIntro = "Background in full-stack, pivoting to cyber";
+export const securityIntro = "Background in full-stack development, with a focus on cybersecurity";
 
 export interface SecurityHighlight {
   title: string;
   subtitle: string;
   detail: string;
   tag: string;
+  /** Experience `period` or project `year`, copied as-is. */
+  date: string;
   link?: string;
 }
 
 const fromExperience = (role: string, company: string, tag: string): SecurityHighlight | null => {
   const item = experiences.find((e) => e.role === role && e.company === company);
-  return item ? { title: item.company, subtitle: item.role, detail: item.description, tag } : null;
+  return item
+    ? { title: item.company, subtitle: item.role, detail: item.description, tag, date: item.period }
+    : null;
 };
 
 const fromProject = (title: string, tag: string): SecurityHighlight | null => {
   const item = projects.find((p) => p.title === title);
-  return item ? { title: item.title, subtitle: item.type, detail: item.description, tag, link: item.link } : null;
+  return item
+    ? { title: item.title, subtitle: item.type, detail: item.description, tag, date: item.year, link: item.link }
+    : null;
 };
 
 export const securityHighlights: SecurityHighlight[] = [

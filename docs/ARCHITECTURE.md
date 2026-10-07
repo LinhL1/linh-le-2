@@ -77,7 +77,7 @@ Each system below answers: what, where, depends on, depended on by, why, data mo
 - **If removed/changed:** without it, phones and non-WebGL browsers get a broken or blank `/`.
 
 ### 3. The 3D scene ("the desk")
-- **What:** everything drawn by WebGL: lights, room, window, skyline, computer, keyboard, mouse, vase, plus camera behaviour.
+- **What:** everything drawn by WebGL: lights, room, window, skyline, computer, keyboard, mouse, potted plant, sticky notes, plus camera behaviour.
 - **Where:** [src/retro/scene/](../src/retro/scene/): `RetroScene.tsx` (composition + state), `CameraRig.tsx` (zoom animation), `ProceduralComputer.tsx` (the computer, built in code), `NightCity.tsx` (wall, window, skyline), `ScreenSlot.tsx` (puts the desktop on the glass), `model.config.ts` (which model, where the screen is), `GlbComputer.tsx` (optional downloaded model).
 - **Depends on:** `three`, `@react-three/fiber`, `@react-three/drei`, and the desktop system (rendered on the screen).
 - **Depended on by:** `Retro.tsx` (lazy import).

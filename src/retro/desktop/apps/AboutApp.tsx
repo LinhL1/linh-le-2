@@ -25,6 +25,7 @@ export function AboutApp() {
         <ul className="retro-list">
           {securityHighlights.map((h) => (
             <li key={`${h.title}-${h.subtitle}`}>
+              <p className="retro-kicker">{h.date}</p>
               <span className="retro-tag">{h.tag}</span> <strong>{h.title}</strong>
               <span className="retro-muted"> — {h.subtitle}</span>
               <p className="retro-small">{h.detail}</p>
