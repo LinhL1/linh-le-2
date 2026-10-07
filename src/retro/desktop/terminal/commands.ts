@@ -80,6 +80,7 @@ const COMMANDS: Record<string, (args: string[], history: string[]) => CommandRes
       line(securityIntro, "heading"),
       blank,
       ...securityHighlights.flatMap((h) => [
+        line(h.date, "muted"),
         line(`[${h.tag}] ${h.title} — ${h.subtitle}`, "accent"),
         line(`  ${h.detail}`),
         ...(h.link ? [line(`  ${h.link}`, "muted", h.link)] : []),

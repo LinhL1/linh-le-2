@@ -47,6 +47,7 @@ describe("terminal commands", () => {
     expect(out).toContain("Project Safeweb");
     expect(out).toContain("PhishSTX");
     expect(out).toContain("INformed");
+    expect(out).toContain("AUG 2025 — JAN 2026"); // Project Safeweb's period
   });
 
   it("links contact details", () => {

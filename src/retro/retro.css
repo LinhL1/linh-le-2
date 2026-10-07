@@ -465,6 +465,7 @@ html.retro-cursor .retro-scene.is-hovering {
   color: #d9f5d9;
 }
 
+.retro-panel--security .retro-kicker,
 .retro-panel--security .retro-muted,
 .retro-panel--security .retro-small {
   color: #9fbf9f;
@@ -513,7 +514,8 @@ html.retro-cursor .retro-scene.is-hovering {
   background: var(--r-phosphor);
 }
 
-.retro-list .retro-tag:first-child {
+.retro-list .retro-tag:first-child,
+.retro-list .retro-kicker + .retro-tag {
   margin-left: 0;
 }
 

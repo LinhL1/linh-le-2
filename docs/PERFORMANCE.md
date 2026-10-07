@@ -64,7 +64,7 @@ Gzipped sizes weren't measured.
 |---|---|---|
 | CSS `matrix3d` recalculation of the desktop DOM on every frame while orbiting/zooming | drei `Html` updates the transform each rendered frame; the browser re-composites an 800×600 DOM layer | Performance panel during an orbit drag on a low-end laptop |
 | Raycasts on every `pointermove`, even while zoomed | desktop pointer events bubble to the R3F event source; R3F raycasts the computer group recursively (including 91 instances) | Performance panel while moving the mouse over the zoomed desktop |
-| Mesh count / draw calls | many tiny meshes (18 crown fins, 4 vent grooves, 6 front vents, cords, stems) each cost a draw call | `r3f.gl.info.render.calls` (see [DEBUGGING.md](DEBUGGING.md)) |
+| Mesh count / draw calls | many tiny meshes (4 vent grooves, 6 front vents, cords, 13 plant leaves) each cost a draw call | `r3f.gl.info.render.calls` (see [DEBUGGING.md](DEBUGGING.md)) |
 | Infinite CSS animations | `.retro-crt` flicker runs forever over the desktop | probably cheap (opacity is compositor-only); check paint flashing |
 | Classic custom cursor loop | `CursorEffect` runs `requestAnimationFrame` forever, even when the mouse is still | Performance panel idle on `/classic` |
 | Large GLB if swapped in | no compression/size guidance enforced | file size in Network tab |
@@ -76,7 +76,7 @@ Ordered by likely payoff:
 1. **Compress and resize images** (WebP/AVIF, sized to display): the envelopes alone are ~10 MB. A `<picture>` or Vite image plugin could automate it.
 2. **Use a smaller thumbnail for `me.jpg`** in the retro About window.
 3. **End loaders on readiness** (e.g. when the lazy chunk resolves / fonts load) rather than a fixed timeout, with a minimum duration if the boot animation should always play.
-4. **Instance or merge repeated scene parts** (crown fins, vents, front-panel slots), e.g. with `InstancedMesh`, drei `<Instances>`, or `BufferGeometryUtils.mergeGeometries`. Small win; the scene is already light.
+4. **Instance or merge repeated scene parts** (plant leaves, vents, front-panel slots), e.g. with `InstancedMesh`, drei `<Instances>`, or `BufferGeometryUtils.mergeGeometries`. Small win; the scene is already light.
 5. **Skip R3F raycasts while zoomed** (e.g. disable events on the group or the event manager when `active`), if profiling shows cost.
 6. **Stop the cursor rAF loop when the ring has caught up** with the mouse.
 7. **Prefetch the 3D chunk** on `/classic` idle time if visitors often go there first (only if analytics say so).

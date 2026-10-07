@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { CanvasTexture, DoubleSide, MeshBasicMaterial, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace } from "three";
+import { CanvasTexture, MeshBasicMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
 
 // Back wall with a large open window onto a night skyline. Everything is generated at
 // runtime on <canvas> (no image assets), from a fixed seed so the skyline is stable.
@@ -24,6 +24,27 @@ function rng(seed: number) {
 }
 
 const WINDOW_COLORS = ["#ffd27a", "#ffd27a", "#ffc061", "#ffe3a8", "#8fd3ff", "#ff9ccf"];
+
+/** Lit-window opacity range. Kept low so the city reads as a backdrop, not a feature. */
+const WINDOW_ALPHA = { min: 0.3, max: 0.7 };
+
+/**
+ * Cheap, portable blur: shrink the canvas by `factor` and stretch it back with smoothing.
+ * Softens window edges and silhouettes so the city looks slightly out of focus behind the
+ * computer (fake depth of field; a real DoF post-process would cost a full-screen pass per frame).
+ */
+function soften(canvas: HTMLCanvasElement, factor: number) {
+  const small = document.createElement("canvas");
+  small.width = Math.round(canvas.width / factor);
+  small.height = Math.round(canvas.height / factor);
+  const s = small.getContext("2d")!;
+  s.imageSmoothingQuality = "high";
+  s.drawImage(canvas, 0, 0, small.width, small.height);
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+}
 
 interface SkylineOptions {
   seed: number;
@@ -82,7 +103,7 @@ function skylineTexture(o: SkylineOptions) {
       for (let wx = x + gap; wx < x + w - o.win; wx += o.win + gap) {
         if (floorLit && rand() < o.litChance) {
           ctx.fillStyle = WINDOW_COLORS[Math.floor(rand() * WINDOW_COLORS.length)];
-          ctx.globalAlpha = 0.55 + rand() * 0.45;
+          ctx.globalAlpha = WINDOW_ALPHA.min + rand() * (WINDOW_ALPHA.max - WINDOW_ALPHA.min);
           ctx.fillRect(wx, wy, o.win, o.win * 1.3);
           ctx.globalAlpha = 1;
         }
@@ -102,6 +123,7 @@ function skylineTexture(o: SkylineOptions) {
     ctx.globalCompositeOperation = "source-over";
   }
 
+  soften(canvas, 3);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
   tex.anisotropy = 4;
@@ -126,6 +148,7 @@ function skyTexture() {
     ctx.fillStyle = `rgba(255,255,255,${0.15 + rand() * 0.45})`;
     ctx.fillRect(rand() * canvas.width, rand() * canvas.height * 0.55, 1.5, 1.5);
   }
+  soften(canvas, 2);
   const tex = new CanvasTexture(canvas);
   tex.colorSpace = SRGBColorSpace;
   return tex;
@@ -135,8 +158,8 @@ function skyTexture() {
 // maxH keeps the generic towers below the Prudential / 111 Huntington rooflines in the default view.
 const LAYERS: (SkylineOptions & { z: number; width: number; y: number })[] = [
   { z: -36, width: 100, y: 0.1, seed: 11, minH: 0.21, maxH: 0.3, minW: 24, maxW: 70, win: 2, litChance: 0.34, body: [26, 24, 48], haze: 0.55 },
-  { z: -23, width: 66, y: 0.4, seed: 23, minH: 0.23, maxH: 0.33, minW: 34, maxW: 96, win: 3, litChance: 0.34, body: [18, 17, 34], haze: 0.25 },
-  { z: -12.5, width: 40, y: 0.6, seed: 37, minH: 0.28, maxH: 0.385, minW: 60, maxW: 140, win: 4, litChance: 0.33, body: [12, 11, 22], haze: 0 },
+  { z: -23, width: 66, y: 0.4, seed: 23, minH: 0.23, maxH: 0.33, minW: 34, maxW: 96, win: 2.5, litChance: 0.34, body: [18, 17, 34], haze: 0.25 },
+  { z: -12.5, width: 40, y: 0.6, seed: 37, minH: 0.28, maxH: 0.385, minW: 60, maxW: 140, win: 2.5, litChance: 0.33, body: [12, 11, 22], haze: 0 },
 ];
 
 // ─── Boston landmarks ────────────────────────────────────────────────────────
@@ -144,130 +167,191 @@ const LAYERS: (SkylineOptions & { z: number; width: number; y: number })[] = [
 // nearest skyline layer and the wall. The default camera looks down at the desk, so only a
 // thin band of the view is visible through the window; positions/heights are tuned so the
 // Pru + 111 Huntington pair (crowns included) shows in the right pane and the Hancock in the left.
+//
+// Each landmark is a flat painted cutout (a transparent plane at the tower's real position and depth),
+// not 3D geometry, so it can be blurred with soften() like the skyline layers. At ~14 units from the
+// camera a cutout is indistinguishable from the old boxes, and keeping each at its own depth keeps
+// the parallax against the skyline when orbiting. Coordinates below are world units.
 
-interface TowerTextureOptions {
-  seed: number;
-  cols: number;
-  rows: number;
-  body: string;
-  litChance: number;
-  /** Prudential-style continuous horizontal window bands. */
-  bands?: boolean;
-  colors?: string[];
+/** Texel density of the cutouts: matches the nearest skyline layer (2048 px over 40 units) so the blur matches too. */
+const CUTOUT_PX_PER_UNIT = 2048 / 40;
+/** Transparent margin so the blur can spread past the tower's edges. */
+const CUTOUT_PAD = 0.15;
+
+interface Bounds {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
 }
 
-function towerTexture(o: TowerTextureOptions) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 1024;
-  const ctx = canvas.getContext("2d")!;
-  const rand = rng(o.seed);
-  const colors = o.colors ?? ["#ffd27a", "#ffe3a8", "#ffc061"];
-  ctx.fillStyle = o.body;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const cw = canvas.width / o.cols;
-  const rh = canvas.height / o.rows;
+type Ctx = CanvasRenderingContext2D;
+
+/** Lit windows on a facade. Draws in world units (y up). */
+function paintWindows(
+  ctx: Ctx,
+  rand: () => number,
+  [x, y, w, h]: [number, number, number, number],
+  o: { cols: number; rows: number; litChance: number; colors: string[]; bands?: boolean },
+) {
+  const cw = w / o.cols;
+  const rh = h / o.rows;
   for (let r = 0; r < o.rows; r++) {
     const floorLit = rand() < 0.8;
     for (let c = 0; c < o.cols; c++) {
       if (!floorLit || rand() > o.litChance) continue;
-      ctx.fillStyle = colors[Math.floor(rand() * colors.length)];
-      ctx.globalAlpha = 0.5 + rand() * 0.5;
-      if (o.bands) ctx.fillRect(c * cw, r * rh + rh * 0.3, cw + 1, rh * 0.4);
-      else ctx.fillRect(c * cw + cw * 0.2, r * rh + rh * 0.2, cw * 0.6, rh * 0.55);
+      ctx.fillStyle = o.colors[Math.floor(rand() * o.colors.length)];
+      ctx.globalAlpha = WINDOW_ALPHA.min + rand() * (WINDOW_ALPHA.max - WINDOW_ALPHA.min);
+      // Prudential-style continuous bands, or separate windows.
+      if (o.bands) ctx.fillRect(x + c * cw, y + r * rh + rh * 0.3, cw, rh * 0.4);
+      else ctx.fillRect(x + c * cw + cw * 0.2, y + r * rh + rh * 0.25, cw * 0.6, rh * 0.55);
       ctx.globalAlpha = 1;
     }
   }
-  const tex = new CanvasTexture(canvas);
-  tex.colorSpace = SRGBColorSpace;
-  tex.wrapS = tex.wrapT = RepeatWrapping;
-  tex.anisotropy = 4;
-  return tex;
 }
 
-const CROWN_FINS = 18;
-/** Landmarks sit in front of the nearest skyline layer, scaled down to read as distant towers. */
-const LANDMARK_SCALE = 0.6;
+interface Landmark {
+  name: string;
+  seed: number;
+  z: number;
+  bounds: Bounds;
+  paint: (ctx: Ctx, rand: () => number) => void;
+}
+
+const WARM = ["#ffd27a", "#ffe3a8", "#ffc061"];
+const CROWN = "#64788a";
+
+const LANDMARKS: Landmark[] = [
+  {
+    // Prudential Tower: square slab (front + a sliver of the right side), penthouse, mast and beacon.
+    name: "prudential",
+    seed: 101,
+    z: -11,
+    bounds: { x0: -0.91, x1: 0.225, y0: -6.65, y1: 1.65 },
+    paint(ctx, rand) {
+      ctx.fillStyle = "#1b1d28";
+      ctx.fillRect(-0.91, -6.65, 1.02, 7.2);
+      ctx.fillStyle = "#232636";
+      ctx.fillRect(0.11, -6.65, 0.115, 7.2);
+      paintWindows(ctx, rand, [-0.91, -6.65, 1.02, 7.2], { cols: 14, rows: 90, litChance: 0.4, colors: WARM, bands: true });
+      paintWindows(ctx, rand, [0.11, -6.65, 0.115, 7.2], { cols: 2, rows: 90, litChance: 0.3, colors: WARM, bands: true });
+      ctx.fillStyle = "#14151d";
+      ctx.fillRect(-0.775, 0.55, 0.75, 0.36);
+      ctx.fillStyle = "#0f1016";
+      ctx.fillRect(-0.435, 0.85, 0.07, 0.72);
+      ctx.fillStyle = "#ff3b3b";
+      ctx.beginPath();
+      ctx.arc(-0.4, 1.6, 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    },
+  },
+  {
+    // 111 Huntington: rounded tower with a finned crown (a ring of vertical fins) around a glass dome.
+    name: "111-huntington",
+    seed: 202,
+    z: -10,
+    bounds: { x0: -0.118, x1: 0.818, y0: -6.86, y1: 0.02 },
+    paint(ctx, rand) {
+      const cx = 0.35;
+      ctx.fillStyle = "#16222b";
+      ctx.fillRect(-0.118, -6.86, 0.936, 6);
+      paintWindows(ctx, rand, [-0.118, -6.86, 0.936, 6], {
+        cols: 22,
+        rows: 60,
+        litChance: 0.38,
+        colors: ["#d8f0ff", "#ffe3a8", "#a8dcff"],
+      });
+      // Darken toward the sides so the flat cutout reads as a cylinder.
+      const shade = ctx.createLinearGradient(-0.118, 0, 0.818, 0);
+      shade.addColorStop(0, "rgba(5, 8, 14, 0.6)");
+      shade.addColorStop(0.45, "rgba(5, 8, 14, 0)");
+      shade.addColorStop(1, "rgba(5, 8, 14, 0.7)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(-0.118, -6.86, 0.936, 6);
+
+      const fins = Array.from({ length: 18 }, (_, i) => (i / 18) * Math.PI * 2);
+      const fin = (a: number) => ctx.fillRect(cx + Math.cos(a) * 0.432 - 0.012, -0.8, 0.024, 0.54);
+      ctx.fillStyle = CROWN;
+      fins.filter((a) => Math.sin(a) < 0).forEach(fin); // back half of the ring, behind the dome
+      ctx.fillStyle = "rgba(95, 127, 156, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(cx, -0.29, 0.372, 0.298, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.fillStyle = CROWN;
+      fins.filter((a) => Math.sin(a) >= 0).forEach(fin);
+      ctx.strokeStyle = CROWN;
+      ctx.lineWidth = 0.03;
+      ctx.beginPath();
+      ctx.ellipse(cx, -0.26, 0.432, 0.07, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    },
+  },
+  {
+    // John Hancock Tower: thin dark-glass slab, seen almost face-on.
+    name: "hancock",
+    seed: 303,
+    z: -11.5,
+    bounds: { x0: -9.55, x1: -8.25, y0: -6.6, y1: 1.2 },
+    paint(ctx, rand) {
+      ctx.fillStyle = "#121a2e";
+      ctx.fillRect(-9.55, -6.6, 1.3, 7.8);
+      paintWindows(ctx, rand, [-9.55, -6.6, 1.3, 7.8], { cols: 14, rows: 100, litChance: 0.18, colors: ["#bcd8ff", "#ffe3a8"] });
+      // Faint sky reflection on the glass, stronger near the top.
+      const sheen = ctx.createLinearGradient(0, -6.6, 0, 1.2);
+      sheen.addColorStop(0, "rgba(120, 150, 210, 0)");
+      sheen.addColorStop(1, "rgba(120, 150, 210, 0.12)");
+      ctx.fillStyle = sheen;
+      ctx.fillRect(-9.55, -6.6, 1.3, 7.8);
+    },
+  },
+];
+
+/** Paints a landmark onto a canvas sized to its bounds, softens it, and returns the texture and plane placement. */
+function landmarkCutout(l: Landmark) {
+  const x0 = l.bounds.x0 - CUTOUT_PAD;
+  const y1 = l.bounds.y1 + CUTOUT_PAD;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil((l.bounds.x1 + CUTOUT_PAD - x0) * CUTOUT_PX_PER_UNIT);
+  canvas.height = Math.ceil((y1 - (l.bounds.y0 - CUTOUT_PAD)) * CUTOUT_PX_PER_UNIT);
+  const ctx = canvas.getContext("2d")!;
+  // Let the paint functions work in world units with y up: scale by px/unit, flip y, origin at (x0, y1).
+  ctx.setTransform(CUTOUT_PX_PER_UNIT, 0, 0, -CUTOUT_PX_PER_UNIT, -x0 * CUTOUT_PX_PER_UNIT, y1 * CUTOUT_PX_PER_UNIT);
+  l.paint(ctx, rng(l.seed));
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  soften(canvas, 3);
+
+  const map = new CanvasTexture(canvas);
+  map.colorSpace = SRGBColorSpace;
+  // Size the plane from the (rounded-up) canvas so texels stay exactly CUTOUT_PX_PER_UNIT apart.
+  const width = canvas.width / CUTOUT_PX_PER_UNIT;
+  const height = canvas.height / CUTOUT_PX_PER_UNIT;
+  return {
+    name: l.name,
+    material: new MeshBasicMaterial({ map, transparent: true, toneMapped: false }),
+    size: [width, height] as [number, number],
+    position: [x0 + width / 2, y1 - height / 2, l.z] as [number, number, number],
+  };
+}
 
 function BostonLandmarks() {
-  const m = useMemo(
-    () => ({
-      pru: new MeshBasicMaterial({
-        map: towerTexture({ seed: 101, cols: 10, rows: 52, body: "#1b1d28", litChance: 0.4, bands: true }),
-        toneMapped: false,
-      }),
-      pruTop: new MeshBasicMaterial({ color: "#14151d" }),
-      huntington: new MeshBasicMaterial({
-        map: towerTexture({ seed: 202, cols: 14, rows: 36, body: "#16222b", litChance: 0.38, colors: ["#d8f0ff", "#ffe3a8", "#a8dcff"] }),
-        toneMapped: false,
-      }),
-      // 111 Huntington's glass crown glows at night.
-      crown: new MeshBasicMaterial({ color: "#cfeaff", toneMapped: false }),
-      dome: new MeshBasicMaterial({ color: "#9fd4ff", transparent: true, opacity: 0.75, side: DoubleSide, toneMapped: false }),
-      hancock: new MeshBasicMaterial({
-        map: towerTexture({ seed: 303, cols: 8, rows: 60, body: "#121a2e", litChance: 0.18, colors: ["#bcd8ff", "#ffe3a8"] }),
-        toneMapped: false,
-      }),
-      beacon: new MeshBasicMaterial({ color: "#ff3b3b", toneMapped: false }),
-      mast: new MeshBasicMaterial({ color: "#0f1016" }),
-    }),
-    [],
-  );
+  const cutouts = useMemo(() => LANDMARKS.map(landmarkCutout), []);
 
   useEffect(
     () => () =>
-      Object.values(m).forEach((mat) => {
-        mat.map?.dispose();
-        mat.dispose();
+      cutouts.forEach(({ material }) => {
+        material.map?.dispose();
+        material.dispose();
       }),
-    [m],
+    [cutouts],
   );
 
   return (
     <group>
-      {/* Prudential Tower: square slab, penthouse and a tall mast */}
-      <group position={[-0.4, -2.45, -11]} scale={LANDMARK_SCALE}>
-        <mesh position={[0, -1, 0]} material={m.pru}>
-          <boxGeometry args={[1.7, 12, 1.7]} />
+      {cutouts.map((c) => (
+        <mesh key={c.name} position={c.position} material={c.material}>
+          <planeGeometry args={c.size} />
         </mesh>
-        <mesh position={[0, 5.3, 0]} material={m.pruTop}>
-          <boxGeometry args={[1.25, 0.6, 1.25]} />
-        </mesh>
-        <mesh position={[0, 6.1, 0]} material={m.mast}>
-          <cylinderGeometry args={[0.05, 0.07, 1.2, 6]} />
-        </mesh>
-        <mesh position={[0, 6.75, 0]} material={m.beacon}>
-          <sphereGeometry args={[0.07, 8, 8]} />
-        </mesh>
-      </group>
-
-      {/* 111 Huntington: rounded tower with the glowing finned crown and dome */}
-      <group position={[0.35, -2.3, -10]} scale={LANDMARK_SCALE}>
-        <mesh position={[0, -2.6, 0]} scale={[1, 1, 0.82]} material={m.huntington}>
-          <cylinderGeometry args={[0.78, 0.78, 10, 32]} />
-        </mesh>
-        {Array.from({ length: CROWN_FINS }, (_, i) => {
-          const a = (i / CROWN_FINS) * Math.PI * 2;
-          return (
-            <mesh key={i} position={[Math.cos(a) * 0.72, 2.95, Math.sin(a) * 0.72 * 0.82]} rotation={[0, -a, 0]} material={m.crown}>
-              <boxGeometry args={[0.04, 0.9, 0.04]} />
-            </mesh>
-          );
-        })}
-        <mesh position={[0, 3.35, 0]} scale={[1, 0.8, 0.82]} material={m.dome}>
-          <sphereGeometry args={[0.62, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        </mesh>
-        <mesh position={[0, 3.4, 0]} scale={[1, 1, 0.82]} material={m.crown}>
-          <torusGeometry args={[0.72, 0.03, 6, 32]} />
-        </mesh>
-      </group>
-
-      {/* John Hancock Tower: thin glass rhomboid slab, turned at an angle */}
-      <group position={[-8.9, -2.34, -11.5]} rotation={[0, 0.55, 0]} scale={LANDMARK_SCALE}>
-        <mesh position={[0, -0.6, 0]} material={m.hancock}>
-          <boxGeometry args={[2.2, 13, 0.62]} />
-        </mesh>
-      </group>
+      ))}
     </group>
   );
 }
@@ -276,7 +360,8 @@ export function NightCity() {
   const res = useMemo(() => {
     const layers = LAYERS.map((l) => {
       const map = skylineTexture(l);
-      return new MeshBasicMaterial({ map, alphaTest: 0.5, toneMapped: false });
+      // Blended (not alphaTest) so the softened silhouettes keep their soft edges.
+      return new MeshBasicMaterial({ map, transparent: true, toneMapped: false });
     });
     const sky = new MeshBasicMaterial({ map: skyTexture(), toneMapped: false });
     const frame = new MeshStandardMaterial({ color: ROOM_COLOR, roughness: 0.8 });

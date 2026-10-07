@@ -14,12 +14,15 @@ const IDLE_TARGET = new Vector3(0, 0.95, 0.35);
 const IDLE_TARGET_ARRAY = IDLE_TARGET.toArray();
 /** Three-quarter view direction from the target; distance is fitted to the viewport. */
 const IDLE_DIRECTION = new Vector3(0.38, 0.42, 1).normalize();
-/** Rough half-extents of the desk setup that should stay in frame when idle. */
-const SCENE_HALF = { width: 2.1, height: 1.15 };
+/** Rough half-extents of the computer (case + monitor) that should stay in frame when idle.
+ *  Desk props (plant, mouse) and the keyboard's front edge may crop so the computer stays the focus. */
+const SCENE_HALF = { width: 1.35, height: 1.05 };
+/** Closest the idle camera gets; on landscape windows this, not SCENE_HALF, sets the distance. */
+const IDLE_MIN_DISTANCE = 3.8;
 
 function idleCameraPosition(aspect: number) {
   const tanHalf = Math.tan(((FOV / 2) * Math.PI) / 180);
-  const distance = Math.max(5, SCENE_HALF.height / tanHalf, SCENE_HALF.width / (tanHalf * aspect));
+  const distance = Math.max(IDLE_MIN_DISTANCE, SCENE_HALF.height / tanHalf, SCENE_HALF.width / (tanHalf * aspect));
   return IDLE_TARGET.clone().addScaledVector(IDLE_DIRECTION, distance);
 }
 
