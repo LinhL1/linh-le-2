@@ -19,7 +19,7 @@ export const experiences: ExperienceItem[] = [
     company: "Kids in Tech",
     period: "NOV 2025 — PRESENT",
     description:
-      "Design, iterate, and lead curriculum for 4 cohorts of Boston-area middle schoolers. Covered STEM, Robotics, and web dev.",
+      "Design, iterate, and lead curriculum for 4 cohorts of Boston-area middle schoolers. Covered STEM, Robotics, Web Dev, and Cybersecurity.",
   },
   {
     role: "Grant Writing & Technical Intern",
