@@ -5,7 +5,7 @@ export const bio = {
   headline: "Builder, just bringing ideas into life in many forms.",
   paragraphs: [
     "As an undergraduate CS student with a background in both creative and technical disciplines, I try to bring a unique perspective to the projects I contribute to. From working with non-profit organizations, student-led initiatives, and personal projects, I care about the functionality, design, and impact of my work. What started with a passion for making fun websites turned into a habit for trying new things...from exploring AI to cybersecurity, I’ve developed an interest for understanding problems, thinking about the people I’m building for, and approaching work not only through a functional lens, but with security and safety in mind.",
-    "When I'm not working on projects, you'll probably find me at an event. If not you'll catch me running, journaling, or doodling.",
+    "When I'm not working on projects, you'll probably find me at an event. If not you'll catch me journaling, boxing, or doodling.",
   ],
 };
 

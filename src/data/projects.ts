@@ -41,8 +41,8 @@ export const projects: Project[] = [
     category: "hackathon",
     description:
       "joint hackathon project: Turn meeting minutes, whiteboard photos and architecture diagrams into one live map of your project: who owns what, what's blocked, what was decided, and what's overdue.",
-    year: "SEP 2026",
-    link: "https://github.com/saquer916/guava-hackathon",
+    year: "OCT 2026",
+    link: "https://github.com/Mishil449861/Hacktober",
     image: progress,
     tools: ["Cloudinary AI", "TypeScript", "HTML", "CSS"]
   },
@@ -192,7 +192,7 @@ export const projects: Project[] = [
     type: "AI/ML",
     category: "other",
     description:
-      "An AI4ALL collaborative project: Trained ML models to develop an email phishing detector using NLP techniques.",
+      "An AI4ALL collaborative project: Trained ML models to develop an email phishing detector using NLP techniques to achieve 97% classification accuracy",
     year: "JAN 2026",
     link: "https://phish-stx-deda6n8vytgxa5jzqmmref.streamlit.app/",
     image: phishstx,
