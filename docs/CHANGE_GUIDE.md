@@ -19,7 +19,8 @@ Universal 3D test pass after any scene change (run `npm run dev`, open `/`):
 |---|---|---|
 | Different idle angle | `IDLE_DIRECTION` in [RetroScene.tsx](../src/retro/scene/RetroScene.tsx) | it's normalized, so only the direction matters |
 | Look at a different point | `IDLE_TARGET` | also the orbit pivot and the zoom-out target |
-| Closer/farther idle view | `SCENE_HALF` (what must fit) or `IDLE_MIN_DISTANCE` (3.8; this one wins on landscape windows) | computed once at mount; zoom-out returns to it |
+| Closer/farther idle view | `SCENE_HALF` (what must fit) or `IDLE_MIN_DISTANCE` (3.8; this one wins on landscape windows) | `idleDistance(aspect)`; `CameraRig` re-fits it on resize (keeps the orbit angle) and zoom-out returns to the fitted distance |
+| Where phones see the zoomed desktop | `SMALL_VIEWPORT_QUERY` in [useRetroMode.ts](../src/retro/useRetroMode.ts) (below it: full-screen `.retro-flatscreen` in `RetroScene`) | the `retro-crt-on` animation in `retro.css` is the power-on effect |
 | Wider/narrower lens | `FOV` | affects idle fit **and** zoom distance (both use `camera.fov`) |
 | Orbit range | `minAzimuthAngle`/`maxAzimuthAngle`/`minPolarAngle`/`maxPolarAngle` on `<OrbitControls>` | radians; polar 0 = straight down from above |
 | Allow zoom/pan | `enableZoom`/`enablePan` | zooming changes the distance, so the `returnTo` logic still works; panning moves the target, which CameraRig overwrites on zoom-out |

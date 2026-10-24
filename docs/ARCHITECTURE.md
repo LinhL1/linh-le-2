@@ -6,12 +6,13 @@ The site is a **static, frontend-only single-page app** (Vite + React 18 + TypeS
 "faces" that share the same content files. At `/`, a **3D scene** (three.js through React Three
 Fiber) shows a beige 90s computer on a desk in front of a night-time Boston window. Clicking the
 monitor flies the camera in, and the monitor shows a **real, interactive React desktop ("LINH-OS")**
-with draggable windows and a terminal. On small screens, without WebGL, or with reduced motion,
+with draggable windows and a terminal. Phones get the 3D desk too, but once zoomed in the desktop
+switches on full-screen (readable) instead of on the glass. Without WebGL or with reduced motion,
 the same desktop renders flat (2D) instead. At `/classic` is the original scrolling editorial
 portfolio (Tailwind + Framer Motion), and `/projects` lists every project. Nothing on `/` links
 to them; they're reachable by URL (and `/classic` links to `/projects`). There is no backend: content
-lives in TypeScript files under `src/data/`, and the classic contact form sends email through
-EmailJS directly from the browser.
+lives in TypeScript files under `src/data/`, and both contact forms (the classic Postcard and the
+retro Contact app) send email through EmailJS directly from the browser, via `src/lib/sendMessage.ts`.
 
 ## System map
 
@@ -41,7 +42,9 @@ graph TD
     Apps --> Data
     Index --> Data
     AllProjects --> Data
-    Index --> EmailJS(["EmailJS API"])
+    Index --> Send["lib/sendMessage.ts"]
+    Apps --> Send
+    Send --> EmailJS(["EmailJS API"])
 ```
 
 ## Entry points
@@ -71,10 +74,10 @@ Each system below answers: what, where, depends on, depended on by, why, data mo
 - **Where:** [src/retro/useRetroMode.ts](../src/retro/useRetroMode.ts), [src/pages/Retro.tsx](../src/pages/Retro.tsx).
 - **Depends on:** `matchMedia`, a WebGL probe, `?mode=` URL param, `localStorage["retro-mode"]`.
 - **Depended on by:** `Retro.tsx` only.
-- **Why:** the 3D view is unreadable on small screens, costly without a GPU, and motion-heavy (CONFIRMED by comments). `decideRetroMode` is a pure function so it is unit-tested ([retroMode.test.ts](../src/test/retro/retroMode.test.ts)).
-- **Rules (in priority order):** no WebGL → 2D · explicit choice (`?mode=2d|3d` or saved button choice) → that · viewport < 900×600 → 2D · `prefers-reduced-motion` → 2D · otherwise 3D.
+- **Why:** the 3D view needs WebGL and is motion-heavy (CONFIRMED by comments). `decideRetroMode` is a pure function so it is unit-tested ([retroMode.test.ts](../src/test/retro/retroMode.test.ts)).
+- **Rules (in priority order):** no WebGL → 2D · explicit choice (`?mode=2d|3d` or saved button choice) → that · `prefers-reduced-motion` → 2D · otherwise 3D (phones included). Viewport size no longer picks the mode; inside 3D, `SMALL_VIEWPORT_QUERY` (< 900×600) decides whether the zoomed desktop is on the glass or full-screen ([DECISIONS.md](DECISIONS.md), "3D on phones…").
 - **Failure path:** `RetroScene` is loaded with `React.lazy`. If the chunk fails to load or rendering throws, `SceneErrorBoundary` calls `reportWebglFailure` → `webgl=false` → 2D. A runtime `webglcontextlost` event does the same, but only while the scene is mounted: R3F calls `gl.forceContextLoss()` when the Canvas unmounts (switching to 2D), and that self-inflicted loss used to mark WebGL as broken, hiding every way back to 3D for the rest of the visit.
-- **If removed/changed:** without it, phones and non-WebGL browsers get a broken or blank `/`.
+- **If removed/changed:** without it, non-WebGL browsers get a broken or blank `/`.
 
 ### 3. The 3D scene ("the desk")
 - **What:** everything drawn by WebGL: lights, room, window, skyline, computer, keyboard, mouse, potted plant, sticky notes, plus camera behaviour.
@@ -120,7 +123,7 @@ sequenceDiagram
     participant F as R3F Canvas
     participant H as drei Html (separate React root)
     B->>R: route "/" renders
-    R->>M: smallViewport? reducedMotion? webgl? forced?
+    R->>M: reducedMotion? webgl? forced?
     M-->>R: mode = "3d"
     R->>S: lazy import (Suspense shows "loading desk...")
     S->>F: create WebGL renderer, camera, scene
@@ -143,7 +146,7 @@ whether loading has finished (CONFIRMED: time-based `setTimeout` in `App.tsx`).
 | React ↔ three.js objects | props → object properties | R3F reconciler (declarative) |
 | Animation ↔ camera | per-frame position/target | `useFrame` + refs (imperative, no React state) |
 | UI ↔ content | arrays/objects | ES imports from `src/data` |
-| Browser ↔ outside world | email | EmailJS SDK (classic Postcard only) |
+| Browser ↔ outside world | email | EmailJS SDK, wrapped by `sendMessage()` (classic Postcard + retro Contact app) |
 
 ## Important abstractions
 

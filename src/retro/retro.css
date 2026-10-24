@@ -678,6 +678,60 @@ html.retro-cursor .retro-scene.is-hovering {
   display: none;
 }
 
+/* Contact form: sunken white fields, like a Windows 98 text box. */
+.retro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.retro-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.retro-field__label {
+  font-size: 12px;
+  color: var(--r-ink-soft);
+}
+
+.retro-input {
+  width: 100%;
+  padding: 5px 7px;
+  border: 0;
+  background: #fff;
+  box-shadow: var(--r-bevel-in);
+  font: inherit;
+  color: var(--r-ink);
+  cursor: text;
+}
+
+.retro-input--area {
+  resize: none;
+}
+
+.retro-desktop .retro-window .retro-input:focus-visible {
+  outline-offset: 0;
+}
+
+.retro-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.retro-btn:disabled {
+  color: var(--r-shadow);
+  cursor: var(--r-cursor-arrow);
+}
+
+.retro-btn:disabled:active {
+  box-shadow: var(--r-bevel-out);
+  background: var(--r-face);
+}
+
 /* ---------- Terminal ---------- */
 
 .retro-terminal {
@@ -891,12 +945,57 @@ html.retro-cursor .retro-scene.is-hovering {
   pointer-events: auto;
 }
 
+/* Full-width strip (not left: 50% + translate) so the button and hint can use the whole width and
+   wrap on phones. Clicks pass through the empty parts to the scene, like the top HUD. */
 .retro-hud--bottom {
-  bottom: 20px;
-  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  right: 16px;
+  left: 16px;
   flex-direction: column;
-  transform: translateX(-50%);
   text-align: center;
+  pointer-events: none;
+}
+
+.retro-hud--bottom > * {
+  pointer-events: auto;
+}
+
+@media (max-width: 479px) {
+  .retro-hud__brand-extra {
+    display: none;
+  }
+}
+
+/* Phones: the zoomed-in desktop powers on full-screen over the scene (RetroScene `flatScreen`).
+   Above the HUD; its own taskbar has "Power off". */
+.retro-flatscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  animation: retro-crt-on 0.4s ease-out;
+}
+
+/* Starts as the monitor-wide bright line of a CRT warming up (the camera has just framed the
+   glass at ~92% of the viewport width, see CameraRig FILL), then opens to full height. */
+@keyframes retro-crt-on {
+  0% {
+    transform: scale(0.92, 0.006);
+    filter: brightness(4);
+  }
+  45% {
+    transform: scale(0.92, 0.5);
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-flatscreen {
+    animation: none;
+  }
 }
 
 .retro-hud__brand {
@@ -944,7 +1043,8 @@ html.retro-cursor .retro-scene.is-hovering {
   outline-offset: 3px;
 }
 
-.retro-page--2d .retro-desktop {
+.retro-page--2d .retro-desktop,
+.retro-flatscreen .retro-desktop {
   height: 100%;
 }
 

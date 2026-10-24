@@ -3,6 +3,7 @@ import { APPS, APP_BY_ID } from "./apps";
 import { DesktopContext, type DesktopContextValue } from "./DesktopContext";
 import { PixelIcon } from "./icons";
 import { Taskbar } from "./Taskbar";
+import { useMediaQuery } from "../useRetroMode";
 import { topWindow, useDesktop, type AppId } from "./useDesktop";
 import { CloseGlyph, Window } from "./Window";
 import "../retro.css";
@@ -56,6 +57,7 @@ export function Desktop({
   const iconsRef = useRef<HTMLUListElement>(null);
   const openers = useRef(new Map<AppId, HTMLElement | null>());
   const focused = topWindow(state);
+  const touch = useMediaQuery("(hover: none)");
 
   // Measure the layout size (not the CSS-transformed size, which is what we want in 3D too).
   useLayoutEffect(() => {
@@ -157,7 +159,9 @@ export function Desktop({
             </ul>
           </nav>
 
-          {mode === "2d" && onSwitchTo3d && (
+          {/* Not in the phone layout: windows are full-screen there and it would cover their ×.
+              The taskbar's "3D view" button does the same job. */}
+          {mode === "2d" && onSwitchTo3d && !compact && (
             <button
               type="button"
               className="retro-desktop__exit"
@@ -197,7 +201,7 @@ export function Desktop({
         {/* Outside the area (which stops at the taskbar) so it centres on the whole screen. */}
         {!active && (
           <p className="retro-desktop__idle" aria-hidden="true">
-            click the screen to start
+            {touch ? "tap" : "click"} the screen to start
           </p>
         )}
 

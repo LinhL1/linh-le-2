@@ -23,11 +23,15 @@ Contents:
 |---|---|---|
 | Drag on the scene (mouse or touch) | `OrbitControls`, listening on the `.retro-scene` div | orbits the camera around the desk (idle only) |
 | Hover over the computer | R3F `onPointerOver`/`onPointerOut` on the computer `<group>` | pointer cursor (`.is-hovering` class) |
-| Click the computer or its screen | R3F `onClick` on the same group | zoom in (`zoomed = true`) |
+| Click / tap the computer or its screen | R3F `onClick` on the same group (a tap fires `click` too) | zoom in (`zoomed = true`) |
 | "Turn on the computer" button | HUD `<button>` | zoom in (keyboard-accessible alternative) |
 | "Power off" button / taskbar Power off / `Esc` | HUD, taskbar, `window` keydown, desktop keydown | zoom out |
 | "2D mode" | HUD button | switch to the flat desktop |
 | Clicks, typing, drags *on the screen* | the DOM desktop (normal React events) | windows, apps, terminal (only once `active`) |
+| Same, on a small viewport (< 900×600) | the full-screen `.retro-flatscreen` desktop over the canvas, not the glass | same apps, with native touch scrolling; its taskbar "Power off" / Esc zoom out |
+
+HUD wording follows `(hover: none)`: touch screens read "Tap the computer to start" and the glass
+desktop's idle overlay says "tap the screen to start".
 
 There is no hit-testing for anything else in the scene: the city, the wall, the desk and the plant
 are part of the computer group (desk, plant) or not interactive at all (city, wall).
@@ -266,10 +270,10 @@ const nx = d.x + (e.clientX - d.startX) / d.scale;
 | `Esc` elsewhere on the desktop | `Desktop` `onKeyDown` | closes the top window, or if none: powers off (3D) / exits 2D mode to the 3D desk |
 | `Esc` outside the desktop while zoomed | `window` keydown listener in `RetroScene` (skips events from inside `.retro-desktop`) | powers off |
 | `Esc` outside the desktop in 2D (e.g. focus on `<body>` after load) | `window` keydown listener in `pages/Retro.tsx` (same `.retro-desktop` skip) | exits 2D mode |
-| Corner × (`.retro-desktop__exit`, 2D only) | `Desktop` | exits 2D mode (same as taskbar "3D view") |
+| Corner × (`.retro-desktop__exit`, 2D only, not in the `compact` phone layout) | `Desktop` | exits 2D mode (same as taskbar "3D view") |
 | Mouse wheel over a window (3D) | non-passive `wheel` listener on the `Desktop` root | scrolls the nearest scrollable ancestor manually ([3D_GUIDE §17](3D_GUIDE.md#17-scrolling-inside-css-3d-transforms)) |
 
-2D mode can only be exited when 3D is available: WebGL works and the viewport isn't small (≥ 900×600).
+2D mode can only be exited when 3D is available (WebGL works), at any viewport size.
 Otherwise there's no × and Esc with no windows open does nothing.
 | Zoom in completes | `Desktop` effect (`focusOnActivate`) | focuses the first desktop icon |
 | Power off completes | `RetroScene` effect | focuses "Turn on the computer" |

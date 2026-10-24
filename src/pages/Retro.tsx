@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Desktop } from "@/retro/desktop/Desktop";
-import { useMediaQuery, useRetroMode } from "@/retro/useRetroMode";
+import { COMPACT_QUERY, useMediaQuery, useRetroMode } from "@/retro/useRetroMode";
 import "@/retro/retro.css";
 
 // three / @react-three/* only load when the 3D view is actually used.
@@ -36,9 +36,9 @@ function BootScreen() {
 
 const Retro = () => {
   const navigate = useNavigate();
-  const { mode, canUse3d, smallViewport, chooseMode, reportWebglFailure } = useRetroMode();
-  const compact = useMediaQuery("(max-width: 639px)");
-  const canExit2d = mode === "2d" && canUse3d && !smallViewport;
+  const { mode, canUse3d, chooseMode, reportWebglFailure } = useRetroMode();
+  const compact = useMediaQuery(COMPACT_QUERY);
+  const canExit2d = mode === "2d" && canUse3d;
 
   // Esc from outside the desktop (e.g. focus still on <body> after load); the desktop handles its own Esc first.
   useEffect(() => {

@@ -37,6 +37,7 @@ linh-le/
     ├── data/                  content shared by both sites
     ├── hooks/                 use-mobile, use-toast (shadcn)
     ├── lib/utils.ts           cn() = clsx + tailwind-merge
+    ├── lib/sendMessage.ts     EmailJS send, shared by both contact forms
     ├── assets/                images + fonts (imported → fingerprinted by Vite)
     └── test/                  Vitest tests (retro/ has the meaningful ones)
 ```
@@ -45,7 +46,7 @@ linh-le/
 
 | File | Responsibility | Key exports | Used by |
 |---|---|---|---|
-| [RetroScene.tsx](../src/retro/scene/RetroScene.tsx) | Builds the `<Canvas>`, all lights, environment, contact shadows, orbit controls; owns `zoomed`/`active` state; HUD buttons; click/hover on the computer; Esc to power off. Computes the idle camera distance from the viewport aspect. | `default RetroScene` | `pages/Retro.tsx` (lazy) |
+| [RetroScene.tsx](../src/retro/scene/RetroScene.tsx) | Builds the `<Canvas>`, all lights, environment, contact shadows, orbit controls; owns `zoomed`/`active` state; HUD buttons; click/hover on the computer; Esc to power off. Computes the idle camera distance from the viewport aspect (`idleDistance`, re-fitted by `CameraRig`). On small viewports shows the zoomed desktop full-screen (`.retro-flatscreen`) instead of on the glass. | `default RetroScene` | `pages/Retro.tsx` (lazy) |
 | [CameraRig.tsx](../src/retro/scene/CameraRig.tsx) | Animates camera + orbit target between the idle view and a head-on close-up of the screen, every frame, with refs. Reports "arrived". | `CameraRig` | `RetroScene` |
 | [model.config.ts](../src/retro/scene/model.config.ts) | Chooses procedural vs `.glb` computer; defines where the screen glass is (`ScreenRect`) and the desktop's pixel size (800×600). **The single place to edit when swapping models.** | `COMPUTER_MODEL`, `ACTIVE_SCREEN`, `PROCEDURAL_SCREEN`, `SCREEN_PIXELS`, types | scene files |
 | [ProceduralComputer.tsx](../src/retro/scene/ProceduralComputer.tsx) | The desk, base unit, CRT monitor (extruded bezel with a hole, tapered tube), instanced keyboard, mouse, cords, sticky notes, potted plant (hand-built leaf geometry), low-poly geometric bird (convex hulls). All geometry and materials made in code and disposed on unmount. | `ProceduralComputer` | `RetroScene` |
@@ -64,7 +65,7 @@ linh-le/
 | [apps.tsx](../src/retro/desktop/apps.tsx) | Registry: id → title, label, icon, window size, component. Order = icon order. | `Desktop`, `Taskbar` |
 | [DesktopContext.ts](../src/retro/desktop/DesktopContext.ts) | Context so apps can open/close windows and navigate without the router. | apps |
 | [icons.tsx](../src/retro/desktop/icons.tsx), [pixelIcons.ts](../src/retro/desktop/pixelIcons.ts) | 16×16 pixel-art icons as strings → merged SVG rects. | desktop, taskbar, windows |
-| [apps/](../src/retro/desktop/apps/) | `AboutApp`, `ExperienceApp`, `CommunityApp`, `ProjectsApp`, `ContactApp`, `TerminalApp`: each reads `src/data`. | registry |
+| [apps/](../src/retro/desktop/apps/) | `AboutApp`, `ExperienceApp`, `CommunityApp`, `ProjectsApp`, `ContactApp`, `TerminalApp`: each reads `src/data`. `ContactApp` also has a message form that sends via `src/lib/sendMessage.ts`. | registry |
 | [terminal/commands.ts](../src/retro/desktop/terminal/commands.ts) | Pure command interpreter: `runCommand(input, history) → { lines, action }`. Aliases, file-style `ls`/`cat`. | `TerminalApp`, tests |
 
 ## `src/data/`: content
@@ -87,7 +88,7 @@ linh-le/
 | `ProjectsSection.tsx` → `ProjectCarousel.tsx` | wheel/swipe-driven card stack (CSS 3D via Framer Motion) |
 | `ProjectDetailDialog.tsx` | shadcn `Dialog` with project details / case study |
 | `EventPostcard.tsx` | flip card (CSS 3D `rotateY`) for community events |
-| `Postcard.tsx` | contact form that sends email via EmailJS |
+| `Postcard.tsx` | contact form that sends email via `sendMessage()` (EmailJS) |
 | `Loader.tsx` (+ `Loader.css`) | classic sketch-frame loader and retro BIOS loader |
 | `cursorEffect.tsx` | dot + lagging ring cursor using `requestAnimationFrame` and lerp |
 | `ui/` | ~50 shadcn/ui primitives. Only `dialog`, `toast`/`toaster`, `sonner`, `tooltip` are imported by app code. |
@@ -98,7 +99,8 @@ linh-le/
 |---|---|
 | `retro/desktopState.test.ts` | reducer: cascade, re-open focuses, focus no-ops, move/close |
 | `retro/commands.test.ts` | terminal commands, aliases, errors, actions |
-| `retro/Desktop.test.tsx` | rendered desktop: open/close/focus return, Esc, terminal → open window, 2D exit (× and Esc), inert when inactive |
+| `retro/Desktop.test.tsx` | rendered desktop: open/close/focus return, Esc, terminal → open window, 2D exit (× and Esc; no × in the phone layout), inert when inactive |
+| `retro/ContactApp.test.tsx` | retro contact form: empty message blocked, trimmed send + thanks + reset, failure keeps the draft (EmailJS mocked) |
 | `retro/retroMode.test.ts` | 3D/2D decision table, pixel icon grids, security highlight resolution |
 | `example.test.ts` | placeholder |
 

@@ -19,7 +19,7 @@ npm run dev          # Vite dev server on http://localhost:8080 (listens on all 
 
 | URL | What you get |
 |---|---|
-| `http://localhost:8080/` | retro desktop: 3D if your window is ≥ 900×600 and WebGL works |
+| `http://localhost:8080/` | retro desktop: 3D whenever WebGL works (below 900×600 the zoomed desktop goes full-screen); test phones with DevTools device mode |
 | `http://localhost:8080/?mode=2d` | force the flat desktop (saved choice is ignored) |
 | `http://localhost:8080/?mode=3d` | force 3D even with reduced motion or a small window (not without WebGL) |
 | `http://localhost:8080/classic` | classic editorial site |
@@ -80,7 +80,7 @@ The 3D code is split into its own lazy chunk (`dist/assets/RetroScene-*.js`).
 ## Environment variables
 
 None are used. The only `import.meta.env` reference is `BASE_URL` in the commented GLB example.
-EmailJS IDs are hard-coded in `src/components/Postcard.tsx` (public by design). There is no `.env`
+EmailJS IDs are hard-coded in `src/lib/sendMessage.ts` (public by design), shared by both contact forms. There is no `.env`
 file or `.env.example`. If you add one, use the `VITE_` prefix (only those are exposed to client code).
 
 ## Asset workflow

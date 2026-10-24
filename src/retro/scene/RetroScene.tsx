@@ -2,6 +2,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type Mutab
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Vector3 } from "three";
+import { Desktop } from "../desktop/Desktop";
+import { COMPACT_QUERY, SMALL_VIEWPORT_QUERY, useMediaQuery } from "../useRetroMode";
 import { CameraRig } from "./CameraRig";
 import { GlbComputer } from "./GlbComputer";
 import { NightCity } from "./NightCity";
@@ -20,10 +22,15 @@ const SCENE_HALF = { width: 1.35, height: 1.05 };
 /** Closest the idle camera gets; on landscape windows this, not SCENE_HALF, sets the distance. */
 const IDLE_MIN_DISTANCE = 3.8;
 
-function idleCameraPosition(aspect: number) {
+/** How far the idle camera sits from IDLE_TARGET so the computer fits a viewport of this aspect.
+ *  Portrait phones are width-limited, so they get a much farther camera than laptops. */
+function idleDistance(aspect: number) {
   const tanHalf = Math.tan(((FOV / 2) * Math.PI) / 180);
-  const distance = Math.max(IDLE_MIN_DISTANCE, SCENE_HALF.height / tanHalf, SCENE_HALF.width / (tanHalf * aspect));
-  return IDLE_TARGET.clone().addScaledVector(IDLE_DIRECTION, distance);
+  return Math.max(IDLE_MIN_DISTANCE, SCENE_HALF.height / tanHalf, SCENE_HALF.width / (tanHalf * aspect));
+}
+
+function idleCameraPosition(aspect: number) {
+  return IDLE_TARGET.clone().addScaledVector(IDLE_DIRECTION, idleDistance(aspect));
 }
 
 interface RetroSceneProps {
@@ -41,6 +48,11 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
   const [zoomed, setZoomed] = useState(false);
   const [active, setActive] = useState(false);
   const initialCamera = useMemo(() => idleCameraPosition(window.innerWidth / window.innerHeight), []);
+  // Too small to read the 800×600 desktop on the glass (phones): once the camera arrives, the
+  // desktop powers on full-screen instead, as a regular 2D DOM layer (readable, touch-scrollable).
+  const flatScreen = useMediaQuery(SMALL_VIEWPORT_QUERY);
+  const compact = useMediaQuery(COMPACT_QUERY);
+  const touch = useMediaQuery("(hover: none)");
 
   const wasZoomed = useRef(false);
 
@@ -92,7 +104,9 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
     <main className="retro-page">
       <h1 className="sr-only">Linh Le — portfolio</h1>
       <div className="retro-hud retro-hud--top">
-        <span className="retro-hud__brand">LINH LE · PORTFOLIO</span>
+        <span className="retro-hud__brand">
+          LINH LE<span className="retro-hud__brand-extra"> · PORTFOLIO</span>
+        </span>
         <div className="retro-hud__actions">
           {zoomed && (
             <button type="button" className="retro-btn" onClick={zoomOut}>
@@ -154,7 +168,7 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             </Suspense>
             <ScreenSlot
               screen={ACTIVE_SCREEN}
-              active={active}
+              active={active && !flatScreen}
               focusOnActivate
               navigate={navigate}
               onPowerOff={zoomOut}
@@ -176,16 +190,30 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             minPolarAngle={0.95}
             maxPolarAngle={1.42}
           />
-          <CameraRig zoomed={zoomed} screen={ACTIVE_SCREEN} idleTarget={IDLE_TARGET} onSettled={onSettled} />
+          <CameraRig
+            zoomed={zoomed}
+            screen={ACTIVE_SCREEN}
+            idleTarget={IDLE_TARGET}
+            idleDistance={idleDistance}
+            onSettled={onSettled}
+          />
         </Canvas>
       </div>
+
+      {active && flatScreen && (
+        <div className="retro-flatscreen">
+          <Desktop mode="2d" compact={compact} navigate={navigate} onPowerOff={zoomOut} focusOnActivate />
+        </div>
+      )}
 
       {!zoomed && (
         <div className="retro-hud retro-hud--bottom">
           <button ref={powerButtonRef} type="button" className="retro-btn retro-btn--primary" onClick={zoomIn}>
-            Click the computer to start
+            {touch ? "Tap" : "Click"} the computer to start
           </button>
-          <p className="retro-hud__hint">Drag to look around · click the monitor to zoom in</p>
+          <p className="retro-hud__hint">
+            {touch ? "Drag to look around · tap the monitor" : "Drag to look around · click the monitor to zoom in"}
+          </p>
         </div>
       )}
     </main>

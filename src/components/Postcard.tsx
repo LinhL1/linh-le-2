@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
-import emailjs from "@emailjs/browser";
+import { sendMessage } from "@/lib/sendMessage";
 
 const Postcard = () => {
   const [name, setName] = useState("");
@@ -25,12 +25,7 @@ const Postcard = () => {
     setStamped(true);
 
     try {
-      await emailjs.send(
-        "service_hhcqstc",
-        "template_v3jut8s",
-        { name, email, message },
-        "6c5-lTchA_jm6cYT0"
-      );
+      await sendMessage({ name, email, message });
       setTimeout(() => setSent(true), 600);
     } catch (err) {
       console.error(err);
