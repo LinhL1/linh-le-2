@@ -73,6 +73,14 @@ describe("<Desktop />", () => {
     expect(onSwitchTo3d).toHaveBeenCalledTimes(1);
   });
 
+  it("uses only the taskbar's 3D view button in the phone layout (the corner × would cover full-screen windows)", () => {
+    const onSwitchTo3d = vi.fn();
+    setup({ onSwitchTo3d, compact: true });
+    expect(screen.queryByRole("button", { name: "Exit 2D mode" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "3D view" }));
+    expect(onSwitchTo3d).toHaveBeenCalledTimes(1);
+  });
+
   it("has no exit button when 3D isn't available", () => {
     setup();
     expect(screen.queryByRole("button", { name: "Exit 2D mode" })).not.toBeInTheDocument();

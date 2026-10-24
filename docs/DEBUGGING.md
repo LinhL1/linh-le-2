@@ -8,7 +8,7 @@ At the end: general techniques and [common 3D mistakes](#common-3d-mistakes-for-
 | Need | How |
 |---|---|
 | Force a mode | `/?mode=2d`, `/?mode=3d`; clear `localStorage.retro-mode` |
-| Why am I in 2D? | `useRetroMode()` returns `reason` (`no-webgl`, `forced`, `small-viewport`, `reduced-motion`, `default`). Temporarily log it in `Retro.tsx`. |
+| Why am I in 2D? | `useRetroMode()` returns `reason` (`no-webgl`, `forced`, `reduced-motion`, `default`). Small viewports stay in 3D; their zoomed desktop is full-screen (`flatScreen` in `RetroScene`). Temporarily log it in `Retro.tsx`. |
 | Simulate reduced motion | DevTools → ⋮ → More tools → Rendering → "Emulate CSS prefers-reduced-motion" |
 | See the desktop layer | DevTools Elements: inside `.retro-scene` there's a `<canvas>` and a sibling `div` (drei Html) containing `.retro-desktop` |
 | Inspect three.js objects | temporarily add `onCreated={(s) => ((window as any).r3f = s)}` on `<Canvas>`, then in the console: `r3f.scene`, `r3f.camera.position`, `r3f.controls.target`, `r3f.gl.info.render` (draw calls, triangles) |
@@ -35,6 +35,11 @@ Remove temporary helpers before committing.
 **Symptom:** screen scrolls/shifts when focusing something inside the 3D desktop.
 - **Causes:** a `focus()` without `{ preventScroll: true }` or a `scrollIntoView` inside the transformed layer.
 - **Fix:** use `preventScroll` and set `scrollTop` on the local scroll container (pattern in `TerminalApp`, `Window`).
+
+**Symptom:** a contact form says "Couldn't send" (retro) or "Could not send the postcard" (classic).
+- **Cause:** EmailJS rejected the request. Both forms go through `src/lib/sendMessage.ts`, so they fail together.
+- **Inspect:** the DevTools console logs EmailJS's `{ status, text }`. Seen so far: `412 Gmail_API: Invalid grant. Please reconnect your Gmail account` (the Gmail connection expired or was revoked).
+- **Fix:** it's an account issue, not code: EmailJS dashboard → Email Services → the service → reconnect Gmail. Other possibilities: monthly quota used up, or the site's origin missing from the dashboard's allowed domains.
 
 ## State issues
 

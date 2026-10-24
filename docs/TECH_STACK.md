@@ -18,7 +18,7 @@ installed ones (`node_modules`), checked 2026-10-05.
 | Styling (retro) | plain CSS (`retro.css`) | LINH-OS desktop and 3D page chrome |
 | UI primitives | shadcn/ui on Radix | `Dialog` (project details), toasts, tooltip provider |
 | Animation (DOM) | Framer Motion 12 | classic entrance animations, card stack, postcard flips |
-| Email | @emailjs/browser 4 | classic contact postcard |
+| Email | @emailjs/browser 4 | classic contact postcard + retro Contact app form |
 | Icons | lucide-react | classic site icons |
 | Tests | Vitest 3 + Testing Library + jsdom | retro logic and desktop UI |
 | Lint | ESLint 9 + typescript-eslint + react-hooks + react-refresh | `npm run lint` |
@@ -187,8 +187,9 @@ transforms). It doesn't animate three.js objects. (A sibling library, `framer-mo
 
 ## EmailJS
 
-**Role.** `Postcard.tsx` calls `emailjs.send(service, template, params, publicKey)` so the classic
-contact form sends real email with no backend. The IDs are hard-coded; EmailJS public keys are designed
+**Role.** [sendMessage.ts](../src/lib/sendMessage.ts) calls `emailjs.send(service, template, params, publicKey)`
+so both contact forms (classic `Postcard.tsx`, retro `ContactApp.tsx`) send real email with no backend.
+Tests mock `@/lib/sendMessage` rather than EmailJS itself. The IDs are hard-coded there; EmailJS public keys are designed
 to be exposed in the browser, and abuse is controlled from the EmailJS dashboard (allowed origins, rate limits).
 
 ---

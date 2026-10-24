@@ -32,6 +32,7 @@ Contents:
 15. [The frame loop (React vs per-frame code)](#15-the-frame-loop-react-vs-per-frame-code)
 16. [WebGL context loss](#16-webgl-context-loss)
 17. [Scrolling inside CSS 3D transforms](#17-scrolling-inside-css-3d-transforms)
+18. [3D on phones: re-fitting and the flat-screen handoff](#18-3d-on-phones-re-fitting-and-the-flat-screen-handoff)
 
 Related docs: [3D_ARCHITECTURE.md](3D_ARCHITECTURE.md) (how the scene is assembled),
 [INTERACTION_GUIDE.md](INTERACTION_GUIDE.md) (raycasting, clicks, mental models),
@@ -398,13 +399,15 @@ camera={{ fov: 35, near: 0.1, far: 90, position: initialCamera.toArray() }}
 fov 35° is fairly narrow, which flattens perspective and makes the desk read like a product shot (INFERRED intent).
 `far = 90` comfortably contains the sky plane at z = −46.
 
-**Idle framing**: `idleCameraPosition(aspect)` uses the formula above for the computer's half-extents
+**Idle framing**: `idleDistance(aspect)` uses the formula above for the computer's half-extents
 (`SCENE_HALF = {width: 1.35, height: 1.05}`, the case + monitor, not the whole desk), takes the larger of
 the height-fit and width-fit distances, but never less than `IDLE_MIN_DISTANCE = 3.8`. On any window wider
 than about 1.13:1 the minimum wins, putting the camera at roughly `(1.26, 2.34, 3.66)`: above, to the right
-and in front of the computer, looking at `(0, 0.95, 0.35)`. The plant, mouse and the keyboard's front edge
-are allowed to crop so the computer stays the focus. Zooming out returns to this same pose. This is
-computed **once on mount** (`useMemo([])`); resizing later does not re-fit the idle view.
+and in front of the computer, looking at `(0, 0.95, 0.35)`. A portrait phone (≈ 0.46:1) is width-limited,
+so the camera backs off to ≈ 9.3 units. The plant, mouse and the keyboard's front edge
+are allowed to crop so the computer stays the focus. `idleCameraPosition` uses it for the first pose;
+after that `CameraRig` re-fits the distance whenever the canvas changes shape (keeping the visitor's
+orbit angle), and zoom-out returns to the fitted distance for the *current* shape. See §18.
 
 **Orbit limits** (`<OrbitControls>`): pan and zoom disabled; azimuth limited to −0.55…0.65 rad
 (≈ −32°…+37°); polar 0.95…1.42 rad (≈ 54°…81° from vertical), so you can't go under the desk or
@@ -877,4 +880,66 @@ may not, so re-implement the ones you need from the event.**
 
 ### Related concepts
 §12 (the "hole" in the canvas, also a consequence of putting DOM in 3D),
-[INTERACTION_GUIDE.md](INTERACTION_GUIDE.md) (dragging in a CSS-transformed space has a similar fix).
+[INTERACTION_GUIDE.md](INTERACTION_GUIDE.md) (dragging in a CSS-transformed space has a similar fix),
+§18 (on phones the zoomed desktop leaves the 3D layer entirely, so none of this applies there).
+
+---
+
+## 18. 3D on phones: re-fitting and the flat-screen handoff
+
+### What it means
+Phones get the same 3D desk as laptops (orbit, tap the computer, camera flight). Two things adapt:
+1. **Re-fitting**: the idle camera distance is recomputed from the viewport's aspect whenever it changes.
+2. **Handoff**: once the camera has flown up to the monitor on a small screen, the desktop is shown as a
+   normal full-screen DOM layer *over* the canvas instead of on the glass.
+
+### Why it's needed
+- The desktop on the glass is a fixed 800×600 DOM page scaled to fit the monitor. On a 390 px-wide
+  phone the monitor is ~360 px wide, so everything renders at ~45%: 13 px text becomes ~6 px. Making the
+  page smaller in CSS pixels doesn't help much either: the monitor is 4:3 landscape and the phone is tall,
+  so most of the screen would be unused.
+- Inside drei's `preserve-3d` layer, touch scrolling doesn't work (§17 only re-implements the wheel), and
+  mobile browsers handle focusing inputs inside 3D transforms badly (keyboard pop-up scrolls the page).
+- Phones rotate. A distance fitted for landscape (3.8) crops a portrait view badly, and vice versa.
+
+### How it works / where it appears in this project
+**Re-fitting** ([CameraRig.tsx](../src/retro/scene/CameraRig.tsx)): its effect already re-ran on
+`size` changes to re-frame the close-up. Its idle branch now keeps the orbit *direction* and
+replaces only the *distance*:
+```ts
+const direction = camera.position.clone().sub(controls.target).normalize();
+camera.position.copy(controls.target).addScaledVector(direction, idleDistance(aspect));
+controls.update();   // OrbitControls re-reads the camera, so the next drag starts from here
+```
+The zoom-out goal does the same with the remembered `returnTo` direction, so rotating the phone while
+zoomed in still lands on a well-framed desk. `idleDistance` lives in `RetroScene` (it owns the framing
+constants) and is passed in as a prop.
+
+**Handoff** ([RetroScene.tsx](../src/retro/scene/RetroScene.tsx)):
+```tsx
+const flatScreen = useMediaQuery(SMALL_VIEWPORT_QUERY);  // < 900×600
+<ScreenSlot active={active && !flatScreen} … />           // glass desktop stays inert on phones
+{active && flatScreen && (
+  <div className="retro-flatscreen">
+    <Desktop mode="2d" compact={compact} onPowerOff={zoomOut} focusOnActivate … />
+  </div>
+)}
+```
+`active` only flips once the camera has *arrived* (`onSettled`), so the visitor sees the full flight,
+then the desktop powers on. The `retro-crt-on` CSS animation starts as a thin bright line as wide as
+the framed glass (`FILL.width` = 92%) and opens to full height, so the switch reads as the CRT turning on.
+Power off (taskbar, Esc) calls `zoomOut`: the layer unmounts and the camera flies back. The glass and
+flat desktops are separate React trees, so open windows aren't shared between them.
+
+### Example
+iPhone 13 portrait (390×844): idle camera ≈ 9.3 units back; tap → camera frames the glass at 92% width
+→ `active` → full-screen desktop in the phone (`compact`) layout, native touch scrolling and keyboard.
+A 1280×800 laptop: unchanged, the desktop stays on the glass.
+
+### Mental model
+**The 3D scene is the "intro and the furniture"; the desktop is the content. On a small screen, once
+the camera has delivered you to the monitor, step out of 3D and give the content the whole screen.**
+
+### Related concepts
+§7 (fitting a camera to an aspect), §17 (why scrolling inside the 3D layer is hard),
+[DECISIONS.md](DECISIONS.md) ("3D on phones with a full-screen desktop handoff").

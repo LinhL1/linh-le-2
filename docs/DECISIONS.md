@@ -172,7 +172,9 @@ Documented in comments (`useRetroMode.ts`: "Below these sizes the 3D desk is too
 − Two layouts to test; a forced `?mode=3d` can still be used on small screens.
 
 ### Current Status
-Appropriate; covered by unit tests.
+**Partly superseded (2026-10-23):** small viewports no longer force 2D; see "3D on phones with a
+full-screen desktop handoff" below. No WebGL, reduced motion, an explicit choice and runtime failures
+still decide as described.
 
 ---
 
@@ -289,7 +291,8 @@ Appropriate while the scene is static.
 ## Decision: Frontend-only, EmailJS for contact
 
 ### Decision
-No backend; the classic contact form sends via EmailJS from the browser.
+No backend; both contact forms (classic Postcard, retro Contact app) send via EmailJS from the browser,
+through one helper, [sendMessage.ts](../src/lib/sendMessage.ts), which holds the service/template/public-key IDs.
 
 ### Why
 Documented in [hiw.md §13](../hiw.md): "sends real emails from the browser using EmailJS — no server required."
@@ -299,7 +302,9 @@ Documented in [hiw.md §13](../hiw.md): "sends real emails from the browser usin
 − Relies on a third-party service and its quotas; spam protection depends on EmailJS settings.
 
 ### Current Status
-Appropriate. (The retro Contact app uses `mailto:` + copy-to-clipboard instead of a form.)
+Appropriate. The retro Contact app gained the same message form (2026-10-23), so visitors to `/` can
+send a message without leaving the desktop; its `mailto:` link and copy button stay as the fallback when
+sending fails. Both forms go through `sendMessage()` so the IDs live in one place.
 
 ---
 
@@ -366,3 +371,38 @@ a bundled webfont such as IBM Plex Sans (identical everywhere, but costs a downl
 
 ### Current Status
 Active.
+
+---
+
+## Decision: 3D on phones with a full-screen desktop handoff
+
+### Context
+Phones (any viewport < 900×600) used to get the 2D desktop only, because the 800×600 desktop on the
+monitor is unreadable once scaled to a phone (~45% on a 390 px-wide screen) and touch scrolling doesn't
+work inside drei's 3D layer. The owner asked for the 3D scene to work on mobile too (2026-10-23).
+
+### Decision
+`decideRetroMode` no longer looks at viewport size: with WebGL and no reduced-motion preference, phones get
+the 3D desk (orbit by drag, tap to zoom). `SMALL_VIEWPORT_QUERY` now means "too small to read the glass":
+there, once the camera has arrived, `RetroScene` shows a full-screen `<Desktop mode="2d" compact>` over the
+canvas (with a CRT power-on animation) instead of activating the desktop on the glass. Power off flies back
+out. The idle camera re-fits on resize so rotation keeps the computer framed.
+
+### Why
+Owner's request. The handoff keeps the 3D part that works well on touch (looking around, the camera
+flight) and gives the content the readable, natively scrolling, keyboard-friendly 2D layout.
+See [3D_GUIDE §18](3D_GUIDE.md#18-3d-on-phones-re-fitting-and-the-flat-screen-handoff).
+
+### Alternatives
+Desktop on the glass at phone size (unreadable, no touch scroll); a smaller `SCREEN_PIXELS` on phones
+(the 4:3 monitor leaves most of a tall screen empty, and windows get tiny); keep phones on 2D.
+
+### Tradeoffs
++ Same first impression on every device; content stays readable; no new rendering path.
+− Phones now download the ~930 KB 3D chunk and run WebGL (battery, low-end GPUs). Failures still fall back to 2D.
+− The glass desktop and the full-screen one are separate React trees: open windows aren't carried across
+  if a tablet crosses 900×600 while zoomed in.
+
+### Current Status
+Active. Checked in headless Chromium with iPhone 13 emulation (idle, orbit, zoom, handoff, Contact,
+power off, rotate to landscape); not yet on a physical phone.

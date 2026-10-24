@@ -23,6 +23,8 @@ interface CameraRigProps {
   zoomed: boolean;
   screen: ScreenRect;
   idleTarget: Vector3;
+  /** Idle camera distance from `idleTarget` that fits a viewport of this aspect. */
+  idleDistance: (aspect: number) => number;
   /** Called once each time a transition finishes. */
   onSettled: (zoomed: boolean) => void;
 }
@@ -32,7 +34,7 @@ interface CameraRigProps {
  * All per-frame work happens on refs inside useFrame (no React state), and the
  * canvas only renders while something is moving (frameloop="demand").
  */
-export function CameraRig({ zoomed, screen, idleTarget, onSettled }: CameraRigProps) {
+export function CameraRig({ zoomed, screen, idleTarget, idleDistance, onSettled }: CameraRigProps) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
   const invalidate = useThree((s) => s.invalidate);
@@ -45,18 +47,28 @@ export function CameraRig({ zoomed, screen, idleTarget, onSettled }: CameraRigPr
 
   useEffect(() => {
     if (!controls) return;
+    const aspect = size.width / size.height;
     if (zoomed) {
       if (phase.current === "idle") returnTo.current.copy(camera.position);
       controls.enabled = false;
-      goal.current = zoomPose(screen, camera, size.width / size.height);
+      goal.current = zoomPose(screen, camera, aspect);
       phase.current = "zooming-in";
     } else if (phase.current !== "idle") {
-      goal.current = { position: returnTo.current.clone(), target: idleTarget.clone() };
+      // Same orbit angle as before zooming in, but re-fitted in case the viewport changed shape
+      // meanwhile (a phone rotated while zoomed).
+      const direction = returnTo.current.clone().sub(idleTarget).normalize();
+      const position = idleTarget.clone().addScaledVector(direction, idleDistance(aspect));
+      goal.current = { position, target: idleTarget.clone() };
       phase.current = "zooming-out";
+    } else {
+      // Idle: keep the visitor's orbit angle, re-fit the distance (wide ↔ tall, e.g. a phone rotating).
+      const direction = camera.position.clone().sub(controls.target).normalize();
+      camera.position.copy(controls.target).addScaledVector(direction, idleDistance(aspect));
+      controls.update();
     }
     invalidate();
-    // Re-run on resize too, so the close-up re-frames when the window changes size.
-  }, [zoomed, controls, camera, screen, idleTarget, size.width, size.height, invalidate]);
+    // Re-run on resize too, so both the close-up and the idle view re-frame when the window changes size.
+  }, [zoomed, controls, camera, screen, idleTarget, idleDistance, size.width, size.height, invalidate]);
 
   useFrame((_, delta) => {
     if (!controls || phase.current === "idle" || phase.current === "zoomed") return;

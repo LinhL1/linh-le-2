@@ -43,10 +43,10 @@ Severity: 🔴 likely user-visible · 🟠 developer-facing / could bite · 🟢
 - **Impact:** misleading for future you and for AI agents.
 - **Investigate:** a banner pointing to `docs/` was added at the top of `hiw.md`; update or trim the stale sections when convenient.
 
-### 🟠 8. Idle camera framing is computed once
-- **Evidence:** `RetroScene.tsx` `initialCamera = useMemo(() => idleCameraPosition(window.innerWidth / window.innerHeight), [])`. The zoomed pose re-fits on resize; the idle pose doesn't.
-- **Impact:** after resizing (e.g. from wide to tall), the idle desk may be cropped until reload.
-- **Investigate:** resize while idle and look; if it matters, recompute the distance along the current orbit direction on resize.
+### 🟠 8. Phones now load the 3D scene
+- **Evidence:** since 2026-10-23 viewport size no longer forces 2D (DECISIONS.md, "3D on phones…"). Verified only in headless Chromium with iPhone 13 emulation (SwiftShader).
+- **Impact:** phones download the ~930 KB `RetroScene` chunk and run WebGL; frame rate, heat and battery on real low-end phones are untested. Context loss still falls back to 2D.
+- **Investigate:** try on a real iPhone and Android phone (Safari + Chrome); if it's heavy, cap `dpr` lower or drop `ContactShadows` resolution for small viewports.
 
 ### 🟠 9. Classic carousel captures the mouse wheel
 - **Evidence:** `ProjectCarousel.tsx` `onWheel` always calls `e.preventDefault()`, including at the last card.
@@ -76,8 +76,8 @@ Severity: 🔴 likely user-visible · 🟠 developer-facing / could bite · 🟢
 - **Impact:** none at runtime. See [UNKNOWN.md](UNKNOWN.md).
 
 ### 🟢 15. 2D exit × can cover a window's close button
-- **Evidence:** `.retro-desktop__exit` (2D only) is pinned top-right above all windows (`z-index: 99999`); windows can be dragged under it.
-- **Impact:** a window pushed into the top-right corner has its own × hidden behind the exit ×; Esc or dragging it away still works.
+- **Evidence:** `.retro-desktop__exit` (2D only) is pinned top-right above all windows (`z-index: 99999`); windows can be dragged under it. It's no longer rendered in the `compact` phone layout (full-screen windows would always be covered); the taskbar's "3D view" does the job there.
+- **Impact:** on larger 2D screens, a window pushed into the top-right corner has its own × hidden behind the exit ×; Esc or dragging it away still works.
 
 ### 🟢 16. Desktop font varies by platform
 - **Evidence:** `--r-win` is a system-font stack (Tahoma, Verdana, DejaVu Sans…); nothing is bundled.
@@ -85,4 +85,12 @@ Severity: 🔴 likely user-visible · 🟠 developer-facing / could bite · 🟢
 
 ### 🟢 17. 3D wheel scrolling is reimplemented, touch scrolling isn't
 - **Evidence:** `Desktop` handles `wheel` itself in 3D (Chromium can't scroll inside drei's preserve-3d layer). It moves `scrollTop` instantly (no smooth scrolling) and only vertically.
-- **Impact:** wheel/trackpad work; horizontal scrolling and touch-drag scrolling inside 3D windows don't. 3D is only offered on ≥900×600 viewports, so touch is mostly tablets.
+- **Impact:** wheel/trackpad work; horizontal scrolling and touch-drag scrolling inside 3D windows don't. Phones (< 900×600) never use the glass desktop (they get the full-screen one, which scrolls natively), so this affects touch only on tablets ≥ 900×600.
+
+### 🟢 18. Vitest 3.2 flags handled rejections after `mockClear`/`mockReset`
+- **Evidence:** in `ContactApp.test.tsx`, adding `beforeEach(() => send.mockClear())` (or `mockReset`) makes the failure-path test fail with the mock's `Error: network`, even though `ContactApp` catches it (verified with a log in the `catch`). Without the `beforeEach` it passes.
+- **Impact:** that test file deliberately doesn't clear the mock between tests and asserts with `toHaveBeenLastCalledWith`. Revisit after a Vitest upgrade.
+
+### 🟢 19. Contact forms have no spam protection of their own
+- **Evidence:** `sendMessage()` posts straight to EmailJS; neither form has a honeypot or CAPTCHA.
+- **Impact:** abuse is only limited by the EmailJS dashboard (allowed origins, rate limits). Worth checking those settings include the deployed origin.

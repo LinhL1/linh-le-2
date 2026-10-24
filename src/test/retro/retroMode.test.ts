@@ -3,15 +3,14 @@ import { decideRetroMode, type RetroModeInputs } from "@/retro/useRetroMode";
 import { ICONS, PALETTE } from "@/retro/desktop/pixelIcons";
 import { securityHighlights } from "@/data/security";
 
-const base: RetroModeInputs = { smallViewport: false, reducedMotion: false, webgl: true, forced: null };
+const base: RetroModeInputs = { reducedMotion: false, webgl: true, forced: null };
 
 describe("decideRetroMode", () => {
-  it("defaults to 3D on a capable desktop", () => {
+  it("defaults to 3D whenever WebGL works, phones included", () => {
     expect(decideRetroMode(base)).toEqual({ mode: "3d", reason: "default" });
   });
 
-  it("falls back to 2D for small viewports, reduced motion and missing WebGL", () => {
-    expect(decideRetroMode({ ...base, smallViewport: true }).mode).toBe("2d");
+  it("falls back to 2D for reduced motion and missing WebGL", () => {
     expect(decideRetroMode({ ...base, reducedMotion: true }).mode).toBe("2d");
     expect(decideRetroMode({ ...base, webgl: false }).mode).toBe("2d");
   });

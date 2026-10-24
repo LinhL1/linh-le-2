@@ -45,19 +45,23 @@ graph LR
 graph TD
     URL["?mode=2d|3d"] --> F[forced]
     LS["localStorage 'retro-mode'"] --> F
-    MQ1["matchMedia (max-width:899px),(max-height:599px)"] --> SV[smallViewport]
     MQ2["matchMedia prefers-reduced-motion"] --> RM[reducedMotion]
     GL["hasWebGL() probe, cached"] --> W[webgl]
     FAIL["scene error / context lost"] -->|reportWebglFailure| W
-    F & SV & RM & W --> D["decideRetroMode()"]
+    F & RM & W --> D["decideRetroMode()"]
     D --> MODE{"mode"}
     MODE -->|3d| Scene[RetroScene]
     MODE -->|2d| Flat["Desktop mode=2d"]
     BTN["'2D mode' / '3D view' buttons<br/>2D corner × / Esc"] -->|"chooseMode: setForced + save"| F
+    MQ1["matchMedia (max-width:899px),(max-height:599px)"] --> FS[flatScreen]
+    FS --> Scene
+    Scene -->|"active && flatScreen"| Full["full-screen Desktop mode=2d over the canvas"]
+    Scene -->|"active && !flatScreen"| Glass["Desktop mode=3d on the glass"]
 ```
 
-The URL parameter wins over the saved choice. Media queries are live: rotating a tablet or resizing
-below 900×600 switches to 2D immediately (unless a mode is forced).
+The URL parameter wins over the saved choice. Viewport size doesn't choose the mode any more; it only
+decides, inside the 3D scene, where the zoomed-in desktop appears. That media query is live: rotating a
+tablet across 900×600 while zoomed in swaps between the glass and the full-screen desktop.
 
 ## 3. 3D scene state
 
@@ -132,7 +136,7 @@ terminal command and Projects-app link were removed); the plumbing stays for fut
 | Dark mode | `Navbar` `isDark` state → toggles `.dark` on `<html>` → CSS variables + Tailwind `dark:` variants; `CursorEffect` watches the class with a `MutationObserver`. Not persisted. |
 | Section navigation | navbar buttons → `document.getElementById(id).scrollIntoView({behavior:"smooth"})` |
 | Project carousel | wheel/touch deltas accumulate in refs → `goTo(i)` (700 ms lock) → `current` state → Framer Motion animates CSS 3D card transforms; click front card → `ProjectDetailDialog` |
-| Contact postcard | form state → `emailjs.send(serviceId, templateId, {name,email,message}, publicKey)` → EmailJS servers send the mail |
+| Contact postcard | form state → `sendMessage({name,email,message})` ([src/lib/sendMessage.ts](../src/lib/sendMessage.ts)) → `emailjs.send(serviceId, templateId, params, publicKey)` → EmailJS servers send the mail. The retro Contact app's form uses the same helper. |
 
 ## 8. Browser storage and URL
 

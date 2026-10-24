@@ -1,27 +1,28 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type RetroMode = "3d" | "2d";
-export type RetroModeReason = "forced" | "no-webgl" | "small-viewport" | "reduced-motion" | "default";
+export type RetroModeReason = "forced" | "no-webgl" | "reduced-motion" | "default";
 
 export interface RetroModeInputs {
-  smallViewport: boolean;
   reducedMotion: boolean;
   webgl: boolean;
   forced: RetroMode | null;
 }
 
-/** Below these sizes the 3D desk is too cramped to read the screen, so we go straight to 2D. */
+/** Below these sizes the 800×600 desktop on the monitor is too small to read once zoomed in, so the
+ *  3D scene shows it full-screen instead (see RetroScene). Phones still get the 3D desk. */
 export const SMALL_VIEWPORT_QUERY = "(max-width: 899px), (max-height: 599px)";
+/** Phone layout for the desktop itself: icon grid + full-screen windows. */
+export const COMPACT_QUERY = "(max-width: 639px)";
 export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const STORAGE_KEY = "retro-mode";
 
-export function decideRetroMode({ smallViewport, reducedMotion, webgl, forced }: RetroModeInputs): {
+export function decideRetroMode({ reducedMotion, webgl, forced }: RetroModeInputs): {
   mode: RetroMode;
   reason: RetroModeReason;
 } {
   if (!webgl) return { mode: "2d", reason: "no-webgl" };
   if (forced) return { mode: forced, reason: "forced" };
-  if (smallViewport) return { mode: "2d", reason: "small-viewport" };
   if (reducedMotion) return { mode: "2d", reason: "reduced-motion" };
   return { mode: "3d", reason: "default" };
 }
@@ -67,12 +68,11 @@ export function useMediaQuery(query: string): boolean {
 }
 
 export function useRetroMode() {
-  const smallViewport = useMediaQuery(SMALL_VIEWPORT_QUERY);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const [forced, setForced] = useState<RetroMode | null>(readForcedMode);
   const [webgl, setWebgl] = useState(hasWebGL);
 
-  const { mode, reason } = decideRetroMode({ smallViewport, reducedMotion, webgl, forced });
+  const { mode, reason } = decideRetroMode({ reducedMotion, webgl, forced });
 
   /** Remember the visitor's explicit choice (e.g. the "2D mode" / "3D view" buttons). */
   const chooseMode = useCallback((next: RetroMode) => {
@@ -91,7 +91,6 @@ export function useRetroMode() {
     mode,
     reason,
     reducedMotion,
-    smallViewport,
     /** Whether offering a "3D view" button makes sense. */
     canUse3d: webgl,
     chooseMode,

@@ -267,8 +267,13 @@ is already cached by the browser).
 ## The 2D fallback is a first-class path
 
 `/` without 3D renders the *same* `<Desktop>` in `mode="2d"`, full-window, with a `compact`
-(phone) layout under 640 px. When WebGL exists and the viewport is big enough, three things go back
-to 3D: the taskbar's "3D view" button, a pixel × in the top-right corner, and Esc with no windows open. The 3D JavaScript is in a separate lazy chunk (`RetroScene-*.js`, ~930 KB minified before
+(phone) layout under 640 px. When WebGL exists, three things go back to 3D: the taskbar's "3D view"
+button, a pixel × in the top-right corner (not in the `compact` layout, where it would cover full-screen
+windows' close buttons), and Esc with no windows open.
+
+The same 2D desktop is also used *inside* the 3D path on small viewports (< 900×600, i.e. phones):
+`RetroScene` renders it full-screen over the canvas once the zoom-in has settled, instead of activating
+the desktop on the glass. See [3D_GUIDE §18](3D_GUIDE.md#18-3d-on-phones-re-fitting-and-the-flat-screen-handoff). The 3D JavaScript is in a separate lazy chunk (`RetroScene-*.js`, ~930 KB minified before
 gzip in the current `dist/`), which 2D visitors never download.
 
 ## Extension points

@@ -24,7 +24,7 @@ See [TECH_STACK.md](TECH_STACK.md) for how each is used. Grouped:
 | Styling | `tailwindcss`, `tailwindcss-animate`, `@tailwindcss/typography`, `postcss`, `autoprefixer`, `tailwind-merge`, `clsx`, `class-variance-authority` |
 | UI | `@radix-ui/*`, shadcn/ui (generated into `src/components/ui`), `lucide-react`, `sonner` |
 | Animation | `framer-motion` |
-| Integrations | `@emailjs/browser` |
+| Integrations | `@emailjs/browser` (via `src/lib/sendMessage.ts`) |
 | Template leftovers | `@tanstack/react-query`, `recharts`, `embla-carousel-react`, `react-hook-form`, `zod`, `cmdk`, `vaul`, `input-otp`, `react-day-picker`, `date-fns`, `react-resizable-panels`, `next-themes` |
 
 ## 3D tools
