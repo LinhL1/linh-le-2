@@ -2,6 +2,7 @@
 import bouqets_baner from "@/assets/events/bouquet_banter.jpg";
 import coworking from "@/assets/events/sl-coworking.png";
 import heraistudio from "@/assets/events/heraistudio.jpg";
+import boardgames from "@/assets/events/boardgames.jpg";
 
 
 
@@ -44,6 +45,18 @@ export const events: CommunityEvent[] = [
     linkLabel: "Non-profit page",
   },
   {
+    title: "Newtworking Social: Tavern of Tales",
+    date: "OCT 2026",
+    role: "Host",
+    affiliation: "Rewriting the Code",
+    location: "Boston, MA",
+    description:
+      "Hosted a community event for RTC that brought local women in tech together over boardgames.",
+    image: boardgames,
+    imageAlt: "boardgames social",
+    postmarkInk: "dark",
+  },
+  {
     title: "Networking Social: Bouquets & Banter",
     date: "July 2026",
     role: "Host",
@@ -55,7 +68,7 @@ export const events: CommunityEvent[] = [
     imageAlt: "Bouquet social netwoking event",
   },
   {
-    title: "Soft Launch Virtual Co-working Sessions",
+    title: "Soft Launch Virtual Coworking Sessions",
     date: "June 2026 - PRESENT",
     role: "Organizer & Host",
     affiliation: "Independent",
