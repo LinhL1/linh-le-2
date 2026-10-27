@@ -25,7 +25,7 @@ export interface CommunityEvent {
 }
 
 export const communityIntro =
-  "I love creating experiences where people feel welcome, the space is intentional, and everyone leaves having had a good time. Community, is both about bringing people together and being an active part of the communities that make us feel connected. Here are a few events I’ve hosted and communities I’ve been lucky enough to build, contribute to, and grow with.";
+  "I love creating experiences where people feel welcome, the space is intentional, and everyone leaves having had a good time. Here are a few events I’ve hosted and communities I’ve been lucky enough to build, contribute to, and grow with.";
 
 // To add an event: drop a photo in src/assets/events/, import it above,
 // and append an entry here. Cards render in array order.
@@ -35,7 +35,7 @@ export const events: CommunityEvent[] = [
     date: "OCT 2026 - PRESENT",
     role: "Board Member",
     affiliation: "Her AI Studio",
-    location: "Newton, MA",
+    location: "Chestnut Hill, MA",
     description:
       "Contribute youth perspectives to Her AI Studio’s AI education initiatives, helping shape programs, curriculum, events, outreach, community, and content. Collaborate with the organization’s leadership and fellow Youth Board members to ensure the experiences and needs of young women are meaningfully represented in what Her AI Studio builds.",
     image: heraistudio,

@@ -76,7 +76,7 @@ graph LR
     A --> SS["ScreenSlot pointerEvents"]
     A --> DT["Desktop: inert, focus"]
     A --> LED["LED colour/emissive"]
-    A --> PL["CRT pointLight intensity"]
+    A --> PL["screen glow intensity<br/>(rectAreaLight + pointLight)"]
     Z --> HUD["HUD buttons"]
 ```
 

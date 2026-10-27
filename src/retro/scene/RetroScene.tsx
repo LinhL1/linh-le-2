@@ -2,14 +2,22 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type Mutab
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, OrbitControls } from "@react-three/drei";
 import { Vector3 } from "three";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { Desktop } from "../desktop/Desktop";
 import { COMPACT_QUERY, SMALL_VIEWPORT_QUERY, useMediaQuery } from "../useRetroMode";
 import { CameraRig } from "./CameraRig";
 import { GlbComputer } from "./GlbComputer";
-import { NightCity } from "./NightCity";
 import { ACTIVE_SCREEN, COMPUTER_MODEL } from "./model.config";
 import { ProceduralComputer } from "./ProceduralComputer";
+import { ScreenHalo } from "./ScreenHalo";
 import { ScreenSlot } from "./ScreenSlot";
+
+// RectAreaLight needs its lookup tables uploaded once before any material renders with it.
+RectAreaLightUniformsLib.init();
+
+/** Light thrown by the monitor: the desktop's teal-green (--r-desk, lifted toward the lit wallpaper) so the room
+ *  is lit by what's actually on the screen. Both lights brighten a little while the screen is on (zoomed in). */
+const SCREEN_GLOW = { color: "#9fd1bb", area: 0.9, point: 1.4, onBoost: 1.15 };
 
 const FOV = 35;
 const IDLE_TARGET = new Vector3(0, 0.95, 0.35);
@@ -134,25 +142,40 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             });
           }}
         >
-          {/* Night room: dim warm key (desk lamp), cool city light spilling in from the window. */}
-          <ambientLight intensity={0.28} color="#c9c4ff" />
-          <directionalLight position={[-3, 5, 4]} intensity={1.25} color="#ffe2b8" />
-          <directionalLight position={[2.5, 3.5, -6]} intensity={0.9} color="#8a9cff" />
-          <directionalLight position={[-4, 2, -5]} intensity={0.45} color="#ff86bd" />
-          {/* CRT glow spilling onto the desk and keyboard. */}
-          <pointLight
-            position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1] - 0.2, ACTIVE_SCREEN.position[2] + 0.7]}
-            intensity={active ? 1.8 : 1.1}
-            distance={3.2}
-            color="#a8ffc4"
+          {/* Dark room lit only by the monitor. Every light source sits on the glass, so faces turned toward the
+              screen catch light and faces turned away (or level with it, like the bezel front) stay dark. */}
+          <ambientLight intensity={0.03} color={SCREEN_GLOW.color} />
+          {/* Faint back rim so the computer's silhouette doesn't dissolve into the dark. */}
+          <directionalLight position={[1.5, 4, -5]} intensity={0.08} color="#8f9cc4" />
+          {/* The glass as a glowing panel (lights emit along -Z, hence the half turn to face out of the screen). */}
+          <rectAreaLight
+            position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1], ACTIVE_SCREEN.position[2] + 0.02]}
+            rotation={[ACTIVE_SCREEN.rotation[0], ACTIVE_SCREEN.rotation[1] + Math.PI, ACTIVE_SCREEN.rotation[2]]}
+            width={ACTIVE_SCREEN.width}
+            height={ACTIVE_SCREEN.height}
+            intensity={active ? SCREEN_GLOW.area * SCREEN_GLOW.onBoost : SCREEN_GLOW.area}
+            color={SCREEN_GLOW.color}
           />
-          <Environment resolution={64} frames={1} environmentIntensity={0.55}>
-            <Lightformer form="rect" intensity={2} position={[-3, 4, 3]} scale={[4, 2, 1]} color="#fff3df" />
-            <Lightformer form="rect" intensity={0.8} position={[4, 2, 2]} scale={[3, 3, 1]} color="#dbe6ff" />
-            <Lightformer form="ring" intensity={0.6} position={[0, 5, -3]} scale={2} color="#ffffff" />
+          {/* Just in front of the glass: gives the falloff with distance (keyboard bright, plant dim) the area light
+              lacks. Any closer and the bezel's inner bevel, inches away, burns white; it stays behind the base unit's
+              front face (z = 0.6) so that face stays in shadow. */}
+          <pointLight
+            position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1] - 0.1, ACTIVE_SCREEN.position[2] + 0.2]}
+            intensity={active ? SCREEN_GLOW.point * SCREEN_GLOW.onBoost : SCREEN_GLOW.point}
+            distance={3.6}
+            color={SCREEN_GLOW.color}
+          />
+          {/* Reflections only: the one bright thing in the room is the screen, so that's what plastic reflects. */}
+          <Environment resolution={64} frames={1} environmentIntensity={0.12}>
+            <Lightformer
+              form="rect"
+              intensity={2}
+              position={ACTIVE_SCREEN.position}
+              scale={[ACTIVE_SCREEN.width, ACTIVE_SCREEN.height, 1]}
+              color={SCREEN_GLOW.color}
+            />
           </Environment>
-
-          <NightCity />
+          <ScreenHalo screen={ACTIVE_SCREEN} color={SCREEN_GLOW.color} opacity={active ? 0.3 : 0.35} />
 
           <group
             onClick={onComputerClick}

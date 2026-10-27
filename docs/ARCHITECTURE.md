@@ -4,7 +4,7 @@
 
 The site is a **static, frontend-only single-page app** (Vite + React 18 + TypeScript). It has two
 "faces" that share the same content files. At `/`, a **3D scene** (three.js through React Three
-Fiber) shows a beige 90s computer on a desk in front of a night-time Boston window. Clicking the
+Fiber) shows a beige 90s computer on a desk in a dark room, lit only by the dim teal-green glow of its screen. Clicking the
 monitor flies the camera in, and the monitor shows a **real, interactive React desktop ("LINH-OS")**
 with draggable windows and a terminal. Phones get the 3D desk too, but once zoomed in the desktop
 switches on full-screen (readable) instead of on the glass. Without WebGL or with reduced motion,
@@ -31,7 +31,7 @@ graph TD
     Mode -->|3d| Scene["retro/scene/RetroScene.tsx<br/>(lazy chunk: three + R3F + drei)"]
     Mode -->|2d| Desktop2D["retro/desktop/Desktop mode=2d"]
 
-    Scene --> Canvas["R3F Canvas<br/>lights, NightCity, computer, controls"]
+    Scene --> Canvas["R3F Canvas<br/>screen-glow lights, computer, controls"]
     Scene --> ScreenSlot["ScreenSlot<br/>drei Html on the monitor glass"]
     ScreenSlot --> Desktop3D["retro/desktop/Desktop mode=3d"]
 
@@ -80,8 +80,8 @@ Each system below answers: what, where, depends on, depended on by, why, data mo
 - **If removed/changed:** without it, non-WebGL browsers get a broken or blank `/`.
 
 ### 3. The 3D scene ("the desk")
-- **What:** everything drawn by WebGL: lights, room, window, skyline, computer, keyboard, mouse, potted plant, sticky notes, plus camera behaviour.
-- **Where:** [src/retro/scene/](../src/retro/scene/): `RetroScene.tsx` (composition + state), `CameraRig.tsx` (zoom animation), `ProceduralComputer.tsx` (the computer, built in code), `NightCity.tsx` (wall, window, skyline), `ScreenSlot.tsx` (puts the desktop on the glass), `model.config.ts` (which model, where the screen is), `GlbComputer.tsx` (optional downloaded model).
+- **What:** everything drawn by WebGL: lights, computer, desk, keyboard, mouse, potted plant, sticky notes, bird, plus camera behaviour. The dark room around them is the CSS page background behind the transparent canvas.
+- **Where:** [src/retro/scene/](../src/retro/scene/): `RetroScene.tsx` (composition + state), `CameraRig.tsx` (zoom animation), `ProceduralComputer.tsx` (the computer, built in code), `NightCity.tsx` (wall, window, skyline; currently not mounted), `ScreenSlot.tsx` (puts the desktop on the glass), `model.config.ts` (which model, where the screen is), `GlbComputer.tsx` (optional downloaded model).
 - **Depends on:** `three`, `@react-three/fiber`, `@react-three/drei`, and the desktop system (rendered on the screen).
 - **Depended on by:** `Retro.tsx` (lazy import).
 - **Why:** it's the portfolio's centrepiece. Details: [3D_ARCHITECTURE.md](3D_ARCHITECTURE.md).

@@ -27,9 +27,10 @@ graph TD
 RetroScene
 └─ <Canvas eventSource={.retro-scene div} eventPrefix="client" frameloop="demand" dpr={[1,1.75]}
            camera={{fov:35, near:0.1, far:90}} gl={{antialias, alpha:true, powerPreference:"high-performance"}}>
-   ├─ ambientLight · directionalLight ×3 · pointLight (CRT glow)
-   ├─ Environment (Lightformer ×3, rendered once into a 64px cube map → scene.environment)
-   ├─ NightCity                          wall, window frame, sky, 3 skyline layers, Boston landmarks
+   ├─ ambientLight · directionalLight (faint rim) · rectAreaLight + pointLight (screen glow, on the glass, SCREEN_GLOW)
+   ├─ Environment (Lightformer ×1 at the screen, rendered once into a 64px cube map → scene.environment)
+   ├─ ScreenHalo                          additive glow plane around the glass (fake bloom), not interactive
+   │   (no room: NightCity.tsx exists but is not mounted; the transparent canvas shows the .retro-page background)
    ├─ <group onClick onPointerOver onPointerOut>   ← the only interactive object
    │   ├─ Suspense
    │   │   └─ ProceduralComputer (default) | GlbComputer (if COMPUTER_MODEL.kind === "glb")
@@ -45,7 +46,7 @@ What three.js actually holds (simplified; lights and helpers omitted). Positions
 
 ```text
 Scene
-├─ NightCity <group>
+├─ (NightCity <group> — not mounted since 2026-10-27; when mounted:)
 │  ├─ sky plane              150×64 at (0, 8, −46)          MeshBasic + canvas gradient
 │  ├─ skyline layer ×3       at z −36 / −23 / −12.5          MeshBasic + softened canvas, transparent
 │  ├─ BostonLandmarks <group>  painted, softened cutout planes (MeshBasic, transparent), one per tower
@@ -54,6 +55,8 @@ Scene
 │  │  └─ hancock             z = −11.5, x −9.55…−8.25    dark-glass slab with sheen
 │  ├─ wall boxes ×4          around the window opening, z = −1.95 (oversized: ±40 wide)
 │  └─ window frame, mullions ×2, sill
+├─ rectAreaLight             on the glass at ACTIVE_SCREEN (z + 0.02), turned π around Y to face +Z
+├─ ScreenHalo mesh           plane (screen + 0.55 each side) at ACTIVE_SCREEN z + 0.13, MeshBasic additive, depthWrite off
 ├─ interactive <group>
 │  ├─ ProceduralComputer <group>
 │  │  ├─ desk                7.5 × 0.12 × 3.9, top surface at y = 0
@@ -87,7 +90,7 @@ The camera is not a child of the scene; R3F manages it as `state.camera`.
 graph LR
     CFG["ACTIVE_SCREEN<br/>model.config.ts"] --> SS["ScreenSlot<br/>Html position/rotation,<br/>distanceFactor"]
     CFG --> CR["CameraRig<br/>zoomPose(): where to fly"]
-    CFG --> PL["pointLight<br/>CRT glow position"]
+    CFG --> PL["rectAreaLight + pointLight + ScreenHalo<br/>screen glow position/size"]
     CFG --> PC["ProceduralComputer<br/>bezel opening, glass, monitor height<br/>(via PROCEDURAL_SCREEN)"]
 ```
 
@@ -194,7 +197,7 @@ sequenceDiagram
     CR->>RS: onSettled(true)
     RS->>RS: active = true
     RS->>D: active → pointer-events auto, inert removed, focus first icon
-    RS->>RS: LEDs turn green, CRT glow 1.1 → 1.8
+    RS->>RS: LEDs turn green, screen glow ×1.15 (SCREEN_GLOW.onBoost)
     U->>RS: Esc / Power off / taskbar button
     RS->>RS: zoomed = false, active = false (immediately inert)
     RS->>CR: tween back to returnTo
@@ -256,7 +259,8 @@ when the *camera or 3D objects* change, because that's when the hole and the CSS
 |---|---|---|
 | JSX geometries/materials (`<boxGeometry>`, `<meshStandardMaterial>`) | by R3F on mount | by R3F on unmount |
 | Shared materials/geometries in `ProceduralComputer` | `useDisposable(factory)` (= `useMemo` once) | `useDisposable` cleanup calls `.dispose()` on each |
-| NightCity canvas textures + materials | `useMemo` | `useEffect` cleanup: `map.dispose()`, `material.dispose()` |
+| ScreenHalo canvas texture + material | `useMemo` | `useEffect` cleanup: `map.dispose()`, `material.dispose()` |
+| NightCity canvas textures + materials (when mounted) | `useMemo` | `useEffect` cleanup: `map.dispose()`, `material.dispose()` |
 | GLB scene (if used) | `useGLTF` (cached) | cleanup traverses meshes, disposes geometry, materials, textures; `useGLTF.clear(url)` |
 | WebGL context | `<Canvas>` mount | `<Canvas>` unmount (leaving `/`, switching to 2D) |
 | Probe WebGL context (`hasWebGL`) | once per page load | immediately, via `WEBGL_lose_context` |
@@ -283,5 +287,5 @@ gzip in the current `dist/`), which 2D visitors never download.
 | swap the computer for a downloaded model | `model.config.ts` (`COMPUTER_MODEL`, `screen`, `hideMeshes`) |
 | add a desk prop | a new component inside the interactive `<group>` (clickable) or outside it (not clickable) |
 | add a new interactive object with its own behaviour | a sibling `<group>` with its own handlers; see [CHANGE_GUIDE.md](CHANGE_GUIDE.md#add-a-new-interaction) |
-| change the backdrop | `NightCity.tsx` (`WINDOW`, `LAYERS`, landmarks), keep `ROOM_COLOR` in sync with `.retro-page` background |
+| change the backdrop | today: `.retro-page` background in `retro.css` (the dark room is just CSS behind the transparent canvas). To bring the window back: mount `<NightCity />` in `RetroScene` and set `.retro-page` back to `ROOM_COLOR` (`#141219`) |
 | add an app to the screen | `apps.tsx` registry + `useDesktop.ts` `APP_IDS` |

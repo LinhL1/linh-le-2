@@ -291,7 +291,7 @@ the page keyboard- and screen-reader-accessible.
 | State | Kind | Owner | Read by |
 |---|---|---|---|
 | `zoomed` (intent) | React `useState` | `RetroScene` | HUD, CameraRig, Esc listener, hover guard |
-| `active` (arrived) | React `useState` | `RetroScene` | ScreenSlot/Desktop, ProceduralComputer LEDs, CRT glow |
+| `active` (arrived) | React `useState` | `RetroScene` | ScreenSlot/Desktop, ProceduralComputer LEDs, screen glow lights |
 | camera phase, goal, returnTo | refs | `CameraRig` | CameraRig's `useFrame` |
 | orbit angles, damping, target | inside the OrbitControls instance | drei / three-stdlib | camera, CameraRig (`controls.target`) |
 | hover | CSS class on the container | `RetroScene` (`setHovering`) | CSS |
@@ -310,7 +310,7 @@ the page keyboard- and screen-reader-accessible.
 | hover computer | pointer cursor | `.retro-scene.is-hovering` in `retro.css` |
 | idle screen | blinking "click the screen to start" | `Desktop` (`!active`), `retro-blink` animation |
 | zoom in | camera glides ~1.5 s; HUD swaps to "Power off" | CameraRig, RetroScene |
-| arrived | power LEDs turn green and brighter; CRT glow light 1.1 → 1.8 | ProceduralComputer (`poweredOn`), RetroScene `pointLight` |
+| arrived | power LEDs turn green and brighter; screen glow lights ×1.15, halo opacity 0.35 → 0.3 (the camera is close, so it's dialled down) | ProceduralComputer (`poweredOn`), RetroScene `rectAreaLight` + `pointLight` (`SCREEN_GLOW.onBoost`) |
 | always on screen | scanlines + vignette + flicker; glass sheen | `.retro-crt`, `.retro-desktop--3d::after` |
 | focused window | coloured title bar | `.retro-window.is-focused` |
 

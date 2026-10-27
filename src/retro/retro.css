@@ -905,9 +905,9 @@ html.retro-cursor .retro-scene.is-hovering {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  /* Dark night room; the window and skyline are part of the 3D scene. */
-  /* Matches the rendered back wall (ROOM_COLOR in NightCity.tsx) so orbiting never shows a seam. */
-  background: #141219;
+  /* Dark room behind the (transparent) canvas. The faint haze in the middle, in the screen's teal
+     (SCREEN_GLOW in RetroScene.tsx), reads as its light in the air; the edges stay near-black. */
+  background: radial-gradient(ellipse 55% 50% at 50% 40%, #0f1a17 0%, #070908 100%);
   color: #f4ecd8;
   font-family: var(--r-body);
   /* Dragging to orbit shouldn't select HUD text; windows re-enable selection below. */
