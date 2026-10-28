@@ -267,7 +267,7 @@ the canvas blur can't already fake for flat, distant layers.
 − Landmarks are flat: orbiting to the azimuth limits shows no new sides of the towers (barely visible at that distance).
 
 ### Current Status
-Appropriate.
+Superseded on 2026-10-27 by "Dark room lit only by the screen" (below). `NightCity.tsx` is kept, unmounted.
 
 ---
 
@@ -406,3 +406,94 @@ Desktop on the glass at phone size (unreadable, no touch scroll); a smaller `SCR
 ### Current Status
 Active. Checked in headless Chromium with iPhone 13 emulation (idle, orbit, zoom, handoff, Contact,
 power off, rotate to landscape); not yet on a physical phone.
+
+---
+
+## Decision: Dark room lit only by the screen
+
+### Context
+The scene was a night room: a warm "desk lamp" key light, cool and pink fill from a big window onto a
+procedural Boston skyline (`NightCity`), and a green CRT glow. The owner wanted to try a moodier look
+(2026-10-27): "just the lit PC in a dark room, the few items on the table can still be in view but the
+rest is dark, so no window view. Make the glow of the screen warm."
+
+### Decision
+- `<NightCity />` is no longer mounted. There's no room geometry; the transparent canvas shows the
+  `.retro-page` CSS background, now near-black with a faint warm radial haze around the middle.
+- The screen is the key light: a `rectAreaLight` the size of `ACTIVE_SCREEN` on the glass, plus a
+  `pointLight` lower and in front of it for the pool on the keyboard and desk. Both are warm amber
+  (`SCREEN_GLOW` in `RetroScene.tsx`) and brighten ×1.15 when the screen activates.
+- The old lights were removed: lamp key (`#ffe2b8`, 1.25), window rim (`#8a9cff`, 0.9), skyline fill
+  (`#ff86bd`, 0.45), lavender ambient (0.28), green CRT point light (`#a8ffc4`, 1.1 → 1.8). They are replaced by
+  a warm ambient at 0.05 and a faint dusty-blue back rim (0.12) so the silhouette doesn't vanish.
+- The environment map is down to one dim warm `Lightformer` (`environmentIntensity` 0.55 → 0.15),
+  because an environment lights from every direction and would wash out the dark.
+- The 3D screen gets a faint amber wash (`.retro-desktop--3d::after`) so its colour matches its light.
+
+### Why
+Owner's request. The values were tuned against headless-Chromium screenshots (idle and zoomed):
+the first pass (stronger, more saturated amber, point light near the glass) turned the beige plastic
+orange and lit the bezel more than the desk.
+
+### Alternatives
+Fog to fade the room out (dims the computer too, since it's distance-from-camera based); a
+post-processing bloom on the screen (a full-screen pass every frame, and the screen is DOM, not WebGL,
+so bloom can't see it); keeping a dim window (the owner asked for none).
+
+### Tradeoffs
++ Strong focus on the computer; simpler scene (no skyline textures painted at startup, ~15 fewer meshes).
++ The glow follows `ACTIVE_SCREEN`, so a GLB model's screen would light the room the same way.
+− The Boston landmarks (a nod to "Based in Boston") are gone from view.
+− Objects far from the screen (plant, sticky notes) are dim; moving props further out loses them.
+− The area light has no shadows, so the monitor doesn't block glow from reaching things behind/beside it.
+
+**Revision (same day): light comes *from* the screen, in the screen's colour.** The owner asked for the
+room to be "dark except for the dim light radiating from the screen" and for the light to "match the
+screen's aesthetic". The amber version didn't read as screen light: its point light (z ≈ 1.3) and
+reflection panel (z = 3) were in front of the computer and lit every front face evenly, like a flash.
+Changes:
+- Every light now sits on or just in front of the glass: the point light moved to 0.2 in front of the
+  screen (behind the base unit's front face, which now falls into shadow), the reflection `Lightformer`
+  moved onto the screen itself.
+- `SCREEN_GLOW.color` is now `#9fd1bb`, the desktop's teal-green, replacing amber (the amber screen wash was
+  removed; the page haze is teal too). Ambient 0.03, rim 0.08, `environmentIntensity` 0.12.
+- New `ScreenHalo`: an additive glow plane around the glass (fake bloom), since real bloom can't see the DOM screen.
+- Tuned against screenshots: closer point light and `area` 2.2 burned the bezel's inner bevel white; settled on
+  `area` 0.9, `point` 1.4, halo opacity 0.35 (0.3 zoomed in).
+
+### Current Status
+Active (experimental, the owner is exploring the look). `NightCity.tsx` is kept so the window can come back
+(see [CHANGE_GUIDE.md → environment](CHANGE_GUIDE.md#modify-the-environment-dark-room-or-windowskylinewall)).
+Going back to a warm glow is a one-line change to `SCREEN_GLOW.color` (plus the `.retro-page` haze).
+
+---
+
+## Decision: Light switch: dark room by default, warm lit room on demand
+
+### Context
+After the dark, screen-lit room (above), the owner asked (2026-10-27): "Make the current version the dark
+mode, add a light switch and have light mode be a warm brighter glow in the room. By default it should be dark mode."
+
+### Decision
+- A "Lights" toggle button in the top HUD (`aria-pressed`, with a small CSS wall-switch icon `.retro-switch`)
+  flips `lightsOn` state in `RetroScene`. Default off.
+- `ROOM_LIGHTING.dark` is the previous look, unchanged. `ROOM_LIGHTING.lit` adds a warm lamp directional light
+  (`#ffc98f`, 1.4, front-left above), warm ambient 0.45, a warm `Lightformer` in the environment
+  (`environmentIntensity` 0.45), screen lights at 0.7×, halo at 0.12, and a warm brown page background (`.retro-page--lit`).
+- All lights stay mounted in both modes; only intensities change, so switching never recompiles shaders.
+- The switch is instant (no fade), like a real light switch, and isn't saved: every visit starts in the dark.
+
+### Why
+Owner's request. Not persisting it keeps "dark by default" true for every visit (inferred reading of the request);
+saving it in `localStorage` would be a small change if wanted.
+
+### Alternatives
+A 3D switch on a wall (there's no wall in the dark room, and a HUD button is keyboard-accessible for free);
+a fade between modes (needs per-frame `useFrame` + `invalidate()` work; a real switch doesn't fade).
+
+### Tradeoffs
++ Two moods from one scene; cheap to switch; keyboard and screen-reader accessible.
+− Two lighting presets to keep tuned; any new light must be added to both.
+
+### Current Status
+Active.

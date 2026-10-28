@@ -7,6 +7,13 @@ export interface ExperienceItem {
 
 // Rendered in array order (newest first) by the classic ExperienceSection and the retro desktop.
 export const experiences: ExperienceItem[] = [
+   {
+    role: "Software Development Intern",
+    company: "EcoServant",
+    period: "OCT 2026 — PRESENT",
+    description:
+      "",
+  },
   {
     role: "Systems Automation/Software Development Intern",
     company: "IN Network",

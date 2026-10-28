@@ -26,6 +26,7 @@ Contents:
 | Click / tap the computer or its screen | R3F `onClick` on the same group (a tap fires `click` too) | zoom in (`zoomed = true`) |
 | "Turn on the computer" button | HUD `<button>` | zoom in (keyboard-accessible alternative) |
 | "Power off" button / taskbar Power off / `Esc` | HUD, taskbar, `window` keydown, desktop keydown | zoom out |
+| "Lights" (light switch icon) | HUD button, `aria-pressed` toggle | switches the room lamp on/off (`lightsOn`, off by default): dark room lit only by the screen ↔ warm, brightly lit room. Instant, like a real switch; not saved between visits. Hidden behind the phone full-screen desktop while zoomed in. |
 | "2D mode" | HUD button | switch to the flat desktop |
 | Clicks, typing, drags *on the screen* | the DOM desktop (normal React events) | windows, apps, terminal (only once `active`) |
 | Same, on a small viewport (< 900×600) | the full-screen `.retro-flatscreen` desktop over the canvas, not the glass | same apps, with native touch scrolling; its taskbar "Power off" / Esc zoom out |
@@ -291,7 +292,8 @@ the page keyboard- and screen-reader-accessible.
 | State | Kind | Owner | Read by |
 |---|---|---|---|
 | `zoomed` (intent) | React `useState` | `RetroScene` | HUD, CameraRig, Esc listener, hover guard |
-| `active` (arrived) | React `useState` | `RetroScene` | ScreenSlot/Desktop, ProceduralComputer LEDs, CRT glow |
+| `active` (arrived) | React `useState` | `RetroScene` | ScreenSlot/Desktop, ProceduralComputer LEDs, screen glow lights |
+| `lightsOn` (light switch) | React `useState`, default `false` | `RetroScene` | picks `ROOM_LIGHTING.dark`/`.lit` (light intensities, environment, halo), `.retro-page--lit` background, the switch's `aria-pressed` |
 | camera phase, goal, returnTo | refs | `CameraRig` | CameraRig's `useFrame` |
 | orbit angles, damping, target | inside the OrbitControls instance | drei / three-stdlib | camera, CameraRig (`controls.target`) |
 | hover | CSS class on the container | `RetroScene` (`setHovering`) | CSS |
@@ -310,7 +312,7 @@ the page keyboard- and screen-reader-accessible.
 | hover computer | pointer cursor | `.retro-scene.is-hovering` in `retro.css` |
 | idle screen | blinking "click the screen to start" | `Desktop` (`!active`), `retro-blink` animation |
 | zoom in | camera glides ~1.5 s; HUD swaps to "Power off" | CameraRig, RetroScene |
-| arrived | power LEDs turn green and brighter; CRT glow light 1.1 → 1.8 | ProceduralComputer (`poweredOn`), RetroScene `pointLight` |
+| arrived | power LEDs turn green and brighter; screen glow lights ×1.15, halo opacity 0.35 → 0.3 (the camera is close, so it's dialled down) | ProceduralComputer (`poweredOn`), RetroScene `rectAreaLight` + `pointLight` (`SCREEN_GLOW.onBoost`) |
 | always on screen | scanlines + vignette + flicker; glass sheen | `.retro-crt`, `.retro-desktop--3d::after` |
 | focused window | coloured title bar | `.retro-window.is-focused` |
 

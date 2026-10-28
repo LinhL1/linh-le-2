@@ -96,7 +96,8 @@ SIDE VIEW (looking from the right, +X toward you)          TOP VIEW (looking dow
 - The **desk top is the y=0 plane** ("desk top at y=0" comment in `ProceduralComputer.tsx`).
 - **+Z points from the wall toward the visitor**; the monitor faces +Z; the keyboard is in front (z≈1.5).
 - **X is left/right**: potted plant on the left (−1.75), mouse on the right (+1.62).
-- The night city is far down −Z (up to −46), *behind* the wall, visible through the window.
+- The wall, window and city in the side/top views come from `NightCity.tsx`, which is **currently not mounted**
+  (since 2026-10-27 the computer sits in a dark room with nothing behind it). When mounted, the city is far down −Z (up to −46), behind the wall.
 
 Conversions happen in exactly three places:
 1. **three.js internally**, every frame: local → world → camera → clip → screen (you don't write this).
@@ -465,11 +466,11 @@ materials, so you never write GLSL unless you want custom effects.
 |---|---|
 | Input | pointer events on `.retro-scene` (orbit, hover, click), HUD buttons, Esc |
 | State | `zoomed`, `active` in `RetroScene`; CameraRig refs; OrbitControls' internal state |
-| Scene graph | JSX inside `<Canvas>`: lights, `NightCity`, computer group, `ContactShadows` |
+| Scene graph | JSX inside `<Canvas>`: lights, environment, computer group, `ContactShadows` (no room geometry) |
 | Camera | R3F default `PerspectiveCamera`, moved by OrbitControls or CameraRig |
 | Renderer | R3F's `WebGLRenderer` with `antialias`, `alpha: true` (transparent background, needed for the screen hole), `powerPreference: "high-performance"`, `dpr={[1, 1.75]}` (caps pixel density for performance) |
 | When it renders | `frameloop="demand"`: **only when something calls `invalidate()`**, not 60×/s |
-| Colour output | R3F defaults (not overridden): sRGB output and ACES Filmic tone mapping. Night-city materials opt out with `toneMapped: false` so their colours stay exact. |
+| Colour output | R3F defaults (not overridden): sRGB output and ACES Filmic tone mapping. Night-city materials (not currently mounted) opt out with `toneMapped: false` so their colours stay exact. |
 | Composited with | the DOM desktop layer *behind* the canvas (see §12) and the HUD *above* it |
 
 Under `frameloop="demand"`, a still scene costs **zero** GPU work per frame. That's a deliberate
@@ -573,8 +574,8 @@ Changing "how something looks" is almost always a material change.
 
 | Material | Lit by lights? | Used for | Key properties used |
 |---|---|---|---|
-| `MeshStandardMaterial` | Yes (**PBR**) | computer, desk, keyboard, mouse, potted plant, sticky notes, bird, wall/frame | `color`, `roughness`, `metalness`, `emissive`, `emissiveIntensity`, `side: DoubleSide` (leaves), `flatShading` (bird) |
-| `MeshBasicMaterial` | **No** (flat colour/texture) | sky, skyline layers, landmark cutouts | `map`, `toneMapped: false`, `transparent` |
+| `MeshStandardMaterial` | Yes (**PBR**) | computer, desk, keyboard, mouse, potted plant, sticky notes, bird (and NightCity's wall/frame when mounted) | `color`, `roughness`, `metalness`, `emissive`, `emissiveIntensity`, `side: DoubleSide` (leaves), `flatShading` (bird) |
+| `MeshBasicMaterial` | **No** (flat colour/texture) | sky, skyline layers, landmark cutouts (NightCity, not currently mounted) | `map`, `toneMapped: false`, `transparent` |
 | `ShaderMaterial` | custom | drei `Html`'s invisible occlusion plane (outputs transparent black) | library-internal |
 
 **PBR (physically based rendering)** in two dials:
@@ -589,7 +590,8 @@ soft highlights even without bright lamps.
 **Emissive** makes a surface glow with its own colour regardless of lighting. The LEDs use it, and
 `poweredOn` raises `emissiveIntensity` from 0.2 to 1.4–1.6 when the screen activates.
 
-**Textures** here are **generated at runtime**, not loaded from files (CONFIRMED, NightCity comment
+**Textures** (only in `NightCity.tsx`, which is not mounted at the moment; kept for reference and to bring the window back)
+are **generated at runtime**, not loaded from files (CONFIRMED, NightCity comment
 "no image assets"): a 2D `<canvas>` is painted with buildings and windows, then wrapped as a
 `CanvasTexture`. Important details:
 - `tex.colorSpace = SRGBColorSpace`: tells three.js the canvas colours are normal screen colours, so they aren't washed out.
@@ -636,6 +638,7 @@ Lights define how bright each lit (Standard) surface is, from which direction, a
 | **Ambient** | light from everywhere equally | no direction, no shading; lifts the darkest areas |
 | **Directional** | the sun: parallel rays from a direction | `position` only sets the *direction* (toward the origin by default) |
 | **Point** | a bulb: from a point in all directions | fades with distance; `distance` caps its reach |
+| **Rect area** | a glowing panel (a softbox, a window, a screen) | one-sided, soft; only lights Standard/Physical materials; see below |
 | **Spot** | a torch cone | not used here |
 | **Environment / IBL** | lighting and reflections from a surrounding image | drives PBR reflections |
 | **Shadows** | real-time shadow maps | **not enabled here** |
@@ -644,30 +647,141 @@ Brightness per pixel is roughly `colour × light × max(0, dot(normal, direction
 environment reflection. That's the dot product from §3 doing the work.
 
 ### Where it appears in this project ([RetroScene.tsx](../src/retro/scene/RetroScene.tsx))
-The comment states the intent: *"Night room: dim warm key (desk lamp), cool city light spilling in from the window."*
+The comment states the intent: *"Dark room lit only by the monitor: the screen is the key light, everything else is barely there."*
+(Since 2026-10-27. Before that it was a night room with a desk lamp and city light through a window; see
+[DECISIONS.md](DECISIONS.md#decision-dark-room-lit-only-by-the-screen).)
 
-| Light | Position | Colour | Intensity | Role |
-|---|---|---|---|---|
-| ambient | — | lavender `#c9c4ff` | 0.28 | night-time base |
-| directional | (−3, 5, 4) front-left-above | warm `#ffe2b8` | 1.25 | **key light** (desk lamp) |
-| directional | (2.5, 3.5, −6) behind-right | blue `#8a9cff` | 0.9 | city light from the window (rim light) |
-| directional | (−4, 2, −5) behind-left | pink `#ff86bd` | 0.45 | coloured fill from the skyline |
-| point | just in front of/below the screen | green `#a8ffc4` | 1.1 → **1.8 when active** | CRT glow on desk and keyboard, distance 3.2 |
+There are two lighting modes, chosen by the HUD **"Lights"** switch (`lightsOn` state, off by default).
+Their numbers live in `ROOM_LIGHTING.dark` and `ROOM_LIGHTING.lit` at the top of `RetroScene.tsx`:
 
-**Environment** (`<Environment resolution={64} frames={1}>` with three `Lightformer`s): instead of
-loading an HDR photo, drei renders a tiny virtual "studio" (two soft rectangles and a ring of light)
-into a 64-px cube map **once**, and uses it as `scene.environment`. Every Standard material then
-picks up soft reflections from those shapes. `environmentIntensity={0.55}` keeps it subtle.
+| Light | Position | Colour | Dark (default) | Lights on | Role |
+|---|---|---|---|---|---|
+| ambient | — | dark: `SCREEN_GLOW.color`; lit: warm `#ffd2a0` | 0.03 | 0.45 | base level for faces no light reaches |
+| directional "lamp" | (−3, 5, 3.5) front-left-above | warm `LAMP_COLOR` `#ffc98f` | 0 (off) | 1.4 | the room lamp: key light when on |
+| directional rim | (1.5, 4, −5) behind-right-above | dusty blue `#8f9cc4` | 0.08 | 0.15 | separates the silhouette from the background |
+| rect area | on the glass, same size as `ACTIVE_SCREEN` | `SCREEN_GLOW.color` | `SCREEN_GLOW.area` × 1 | × 0.7 | the screen itself (key light in the dark) |
+| point | 0.1 below and 0.2 in front of the screen centre | `SCREEN_GLOW.color` | `SCREEN_GLOW.point` × 1 | × 0.7 | falloff with distance, `distance` 3.6 |
+
+Both screen lights also get ×`SCREEN_GLOW.onBoost` (1.15) while the screen is active. With the lights on,
+the environment gets a second, warm `Lightformer` where the lamp is (`environmentIntensity` 0.12 → 0.45),
+the halo drops to opacity 0.12 (glare is barely visible in a lit room), and the page background switches to
+a warm brown (`.retro-page--lit` in `retro.css`). The switch is instant, like a real light switch.
+
+The rest of this section describes the dark mode, which is the harder one to get right.
+
+All the glow numbers live in one constant, `SCREEN_GLOW`, at the top of `RetroScene.tsx`. The colour
+(`#9fd1bb`, a soft teal-green) is taken from the desktop itself (`--r-desk`, lifted toward the lit
+wallpaper), so the room is lit by what's actually on the screen.
+
+**The rule that makes it read as "lit by the screen":** every light source sits *on or just in front of the glass*.
+Then the lighting follows the dot product from §3: faces turned toward the screen (the keyboard, the base
+unit's top, the inner bevel) catch light; faces turned away (the monitor's sides and top) or lying
+behind the light (the base unit's front face at z = 0.6, the light at z ≈ 0.56) stay dark. An earlier
+version had a point light out at z ≈ 1.3 and a reflection panel at z = 3, both *in front of* the computer:
+they lit every front face evenly, like a camera flash, and the screen stopped looking like the source.
+
+**Why two lights for one screen?** The area light is the physically right shape, but three.js gives it
+no `distance` cutoff, so it doesn't produce an obvious "bright near, dim far" falloff. The point light just
+off the glass adds that: the keyboard is bright, the plant and sticky notes are barely there. It can't
+sit closer than ~0.2: inverse-square falloff makes the inner bevel, inches away, burn white.
+
+**Environment** (`<Environment resolution={64} frames={1}>` with one `Lightformer`): instead of
+loading an HDR photo, drei renders a tiny virtual "studio" into a 64-px cube map **once**, and uses it
+as `scene.environment`. Here that studio is a single screen-coloured rectangle at the screen's position and
+size, because in a dark room the screen is the only thing glossy plastic could reflect.
+`environmentIntensity={0.12}` keeps it low: an environment map lights from *every* direction, so a
+strong one would undo the darkness.
+
+**Halo** ([ScreenHalo.tsx](../src/retro/scene/ScreenHalo.tsx)): a fake bloom so the light visibly radiates
+into the dark around the bezel. See the concept below.
+
+**Background:** there is no wall or room geometry. The canvas is transparent (`alpha: true`), so
+everything not covered by a mesh shows the `.retro-page` CSS background: near-black with a faint teal
+radial haze in the middle (`retro.css`), which reads as the screen's light in the air.
+
+### Concept: switching lights without a shader recompile
+
+**What:** the light switch never adds or removes a light. The lamp `directionalLight` is always in the
+scene; dark mode just sets its intensity to 0.
+
+**Why:** three.js builds each material's GPU program (shader) for a *specific number and kind of lights*.
+If you add or remove a light (in React terms: conditionally render `{lightsOn && <directionalLight/>}`),
+every lit material has to be recompiled on the next frame. That's a visible stall, from tens of ms to
+seconds on weak GPUs, right when the visitor clicks. Changing an intensity is just a new number
+(a "uniform") sent to the existing program, so it's free.
+
+**How / where:** in [RetroScene.tsx](../src/retro/scene/RetroScene.tsx), every light's `intensity` reads from
+`room` (= `ROOM_LIGHTING.dark` or `.lit`). The one exception is the second `Lightformer`, which *is* conditional:
+it lives inside `<Environment>`, a separate little scene rendered once into the environment map (`frames={1}`).
+`key={lightsOn ? "lit" : "dark"}` remounts the Environment so that map is re-rendered on each switch. That's a single tiny 64-px render.
+
+**Mental model:** a light at intensity 0 is a bulb that's switched off, not one that's been unscrewed.
+
+**Related:** `frameloop="demand"` (§8, §15): changing props re-renders once automatically, so no `invalidate()` is needed here.
+
+### Concept: fake bloom with an additive halo plane
+
+**What:** *bloom* is the soft glow that bleeds around very bright things (a lamp, a screen in the dark).
+Games usually do it as a post-process: find the bright pixels, blur them, add them back over the image.
+
+**Why not real bloom here:** the screen isn't WebGL pixels. It's the DOM desktop showing *through a hole*
+in the canvas (§12), so a bloom pass can't see it. It would also cost a full-screen pass every rendered frame.
+
+**How:** `ScreenHalo` paints, once at load, a `<canvas>` with the screen rectangle's blurred shadow in the
+glow colour, then cuts the glass area out (`destination-out`) so the desktop itself isn't tinted. That
+texture goes on a plane slightly bigger than the screen, 0.13 in front of it (just clear of the bezel), with:
+- `AdditiveBlending`: the plane's colour is *added* to what's behind it, so it brightens the bezel, desk
+  and dark page like light would, rather than painting over them;
+- `depthWrite: false`: it doesn't hide anything drawn after it;
+- `raycast={() => null}`: clicks and hover pass straight through to the computer.
+
+**Example:** change `SPREAD` (how far it reaches) or the `opacity` prop in `RetroScene` (how strong).
+
+**Limits:** it's a flat plane, so at steep orbit angles the cut-out shifts slightly against the glass
+(it sits 0.13 in front), and a sliver of glow can touch the screen's edge. At this strength it reads as glare.
+
+**Mental model:** a sheet of glass in front of the monitor with a soft glowing frame airbrushed on it.
+
+**Related:** emissive materials (§10, glow *on* a surface), Environment/Lightformer (light seen only in reflections).
+
+### Concept: RectAreaLight
+
+**What:** a light shaped like a flat rectangle (`width` × `height`) that emits from one side. Light
+leaves the whole surface, so it's soft, and nearby objects get light from many angles at once.
+
+**Why here:** a monitor *is* a glowing rectangle. A point light at the screen's centre would light
+the bezel and keyboard as if from a bare bulb (hard, round falloff); a rect light the size of the glass
+gives the broad, soft spill a screen really makes.
+
+**How:** three.js can't loop over every point of the rectangle per pixel, so it uses precomputed
+lookup tables ("LTC", linearly transformed cosines) that approximate the integral. Those tables must
+be uploaded once with `RectAreaLightUniformsLib.init()` before anything renders with the light.
+Like cameras, lights point down their local **−Z**, so to face out of the screen (+Z) the light is
+turned half a circle around Y (`rotation y + π`).
+
+**Where:** `<rectAreaLight>` and the `RectAreaLightUniformsLib.init()` call in
+[RetroScene.tsx](../src/retro/scene/RetroScene.tsx). Position/size come from `ACTIVE_SCREEN`, so the light follows the screen.
+
+**Example:**
+```tsx
+RectAreaLightUniformsLib.init(); // once, at module level
+<rectAreaLight position={[0, 1.36, 0.38]} rotation={[0, Math.PI, 0]} width={1.28} height={0.96} intensity={0.9} color="#9fd1bb" />
+```
+
+**Limits:** no shadows; only affects `MeshStandardMaterial`/`MeshPhysicalMaterial` (fine here,
+everything lit is Standard); one-sided, so nothing behind the monitor is lit by it.
+
+**Mental model:** a softbox in a photo studio, glued to the glass.
+
+**Related:** the point light (a bulb), the `Lightformer` (the same idea, but only for reflections).
 
 **Shadows:** real shadow maps are off (no `shadows` on the Canvas; meshes set `castShadow: false`).
 The soft dark patch under the computer is **`ContactShadows`**: drei renders the scene's depth
 from below, blurs it, and puts it on a plane at desk height. With `frames={1}` it's computed
 **once**, so if you move an object the shadow won't follow until remount.
 
-The city doesn't respond to any of these lights: it uses `MeshBasicMaterial` (§10).
-
 ### Mental model
-**One warm key, two cool rims, a glow, a faint fill, and an invisible studio for reflections.**
+**The screen does all the work: every light lives on the glass, in the screen's own colour; a whisper of rim light keeps shapes readable; a painted halo sells the glow.**
 
 ### Related concepts
 Materials (§10), [CHANGE_GUIDE.md → change lighting](CHANGE_GUIDE.md#change-lighting).

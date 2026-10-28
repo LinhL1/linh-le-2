@@ -28,7 +28,7 @@ Universal 3D test pass after any scene change (run `npm run dev`, open `/`):
 | Transition speed | the `5.5` in `1 - Math.exp(-… * 5.5)` | higher = faster |
 
 **Concepts:** [camera](3D_GUIDE.md#7-the-camera), [lerp](3D_GUIDE.md#14-smooth-motion-lerp-and-frame-rate-independence), [state machine](3D_ARCHITECTURE.md#camerarig-state-machine).
-**Could break:** if the idle view's polar/azimuth angle is outside the orbit limits, OrbitControls snaps the camera on its first update. With a wider FOV or lower camera you may see past the oversized wall (`WALL` in NightCity) or under the desk. Too small `near` causes depth precision issues; too small `far` cuts off the sky (z = −46).
+**Could break:** if the idle view's polar/azimuth angle is outside the orbit limits, OrbitControls snaps the camera on its first update. With a wider FOV or lower camera you may see under the desk (there's no wall behind it now; the dark page background hides the desk's edges). Too small `near` causes depth precision issues.
 **Test:** universal pass, plus different window aspect ratios (tall and ultra-wide).
 
 ## Move a 3D object
@@ -66,7 +66,7 @@ the `paintWindows` options inside each `LANDMARKS[].paint` (more `cols`/`rows` =
 - one part only → give that mesh its own `<meshStandardMaterial color="…" />` child instead of the shared `material={mats.beige}`;
 - shinier → lower `roughness`; glow → `emissive` + `emissiveIntensity`.
 **Could break:** materials created with `new` in a memo must stay in the `useDisposable` object (or have a cleanup) to be freed. Night-city materials are `MeshBasicMaterial` with `toneMapped:false`; switching them to Standard makes them react to lights and tone mapping (they'll go dark).
-**Test:** look in both idle and zoomed (the green CRT light changes the look near the screen).
+**Test:** look in both idle and zoomed. The room is lit almost only by the screen's teal-green glow, so colours shift toward it and anything far from the screen goes dark; check a new colour under that light, not on paper.
 
 ## Add a new 3D object
 
@@ -87,7 +87,7 @@ export function Mug() {
     </group>
   );
 }
-// RetroScene.tsx, inside <Canvas>, next to <NightCity />:  <Mug />
+// RetroScene.tsx, inside <Canvas>, after the lights:  <Mug />
 ```
 **Could break:** placing it inside the interactive group makes it zoom-on-click. Many separate meshes add draw calls (use instancing for repeats, like the keyboard). If you create geometries/materials with `new`, dispose them.
 **Test:** universal pass; orbit to all limits to check it's not clipping into the monitor or out of frame.
@@ -132,16 +132,16 @@ function PottedPlant() {
 
 **Where:** the light elements and `<Environment>` at the top of the `<Canvas>` in [RetroScene.tsx](../src/retro/scene/RetroScene.tsx).
 **Concepts:** [lighting](3D_GUIDE.md#11-lighting).
-**Modify:** intensity/colour/position props. The CRT glow is the `pointLight` (intensity switches with `active`). Reflections come from the `Lightformer`s; `environmentIntensity` scales them.
-**Could break:** the night city ignores lights (Basic material) by design. Real shadows need `shadows` on `<Canvas>` + `castShadow` on lights and meshes (currently `castShadow: false`), which costs GPU time; the existing `ContactShadows` would then double up. `Environment frames={1}` means changes to Lightformers need a remount (reload) to show.
-**Test:** idle *and* zoomed; check the desk isn't blown out under the CRT light.
+**Modify:** there are two presets, `ROOM_LIGHTING.dark` (default) and `.lit` (HUD "Lights" switch on): ambient, lamp, rim, `glow` (multiplier on the screen lights), `env` and `halo` per mode. The lit mode's background is `.retro-page--lit` in `retro.css`. To add a light, add it to *both* presets (0 where it's off) rather than rendering it conditionally (see [3D_GUIDE → switching lights](3D_GUIDE.md#concept-switching-lights-without-a-shader-recompile)). The screen glow is a `rectAreaLight` on the glass plus a `pointLight` just in front of it; their colour and intensities are all in `SCREEN_GLOW` at the top of the file (`onBoost` brightens both while `active`). The halo around the bezel is `<ScreenHalo>` (`opacity` prop; `SPREAD` in [ScreenHalo.tsx](../src/retro/scene/ScreenHalo.tsx)). Ambient and the faint back rim are inline. Reflections come from the single `Lightformer` at the screen; `environmentIntensity` scales them. To change the glow colour, change `SCREEN_GLOW.color` and the `.retro-page` haze in `retro.css` together.
+**Could break:** raising ambient or `environmentIntensity` lights the whole scene evenly and loses the dark-room look. Moving a light out in front of the computer makes it look flash-lit instead of screen-lit (front faces light up evenly). Moving the point light closer than ~0.2 to the glass, or raising `area`, burns the bezel's inner bevel white. A strong, saturated glow colour tints the beige plastic heavily. Removing `RectAreaLightUniformsLib.init()` breaks the area light. Objects far from the screen (plant, notes) only get a little point light: if you move them further out, they'll disappear into the dark. Real shadows need `shadows` on `<Canvas>` + `castShadow` on lights and meshes (currently `castShadow: false`), which costs GPU time; the existing `ContactShadows` would then double up. `Environment frames={1}` means changes to Lightformers need a remount (reload) to show.
+**Test:** idle *and* zoomed, with the lights off *and* on; in the dark check the bezel rim isn't blown out, the base unit's front stays in shadow, and the plant and notes are still faintly visible.
 
 ## Change animations
 
 | Animation | Where |
 |---|---|
 | camera fly-in/out | `CameraRig` (speed constant, `FILL`) |
-| LED/glow "power on" | `poweredOn`/`active` props in `ProceduralComputer` and the `pointLight` |
+| LED/glow "power on" | `poweredOn`/`active` props in `ProceduralComputer`; `SCREEN_GLOW.onBoost` on the screen lights |
 | orbit inertia | `dampingFactor` on OrbitControls |
 | CRT flicker, scanlines, blinking prompt | `retro.css` (`retro-flicker`, `.retro-crt`, `retro-blink`); disabled under `prefers-reduced-motion` |
 | boot loader | `Loader.tsx` `BOOT_LINES`/`BOOT_LINE_DELAY` + `RETRO_LOADER_DURATION` in `App.tsx` (keep them consistent) |
@@ -160,9 +160,18 @@ cost GPU constantly; respect `reducedMotion` (available from `useRetroMode`).
 
 **Concepts:** [assets](3D_GUIDE.md#13-assets-and-3d-models). **Could break:** the procedural desk, keyboard, mouse, plant and sticky notes disappear (they're part of `ProceduralComputer`), so the model needs its own desk or you add one; a model with its own lights/cameras is ignored; large models slow the first load (the `Suspense` fallback is `null`, so the computer just pops in). **Test:** zoom in and check edges of the desktop against the bezel from the close-up and idle views.
 
-## Modify the environment (window, skyline, wall)
+## Modify the environment (dark room, or window/skyline/wall)
 
-**Where:** [NightCity.tsx](../src/retro/scene/NightCity.tsx): `WINDOW` (opening), `WALL_Z`, `LAYERS` (depth `z`, size, seed, density, colours, haze), `LANDMARKS` (each tower's `z`, world-unit `bounds` and `paint` function), `skyTexture` (gradient, stars).
+**Today (since 2026-10-27):** there is no room geometry. The dark around the desk is the `.retro-page`
+`background` in `retro.css` (near-black with a faint teal radial haze, matching the screen glow), seen through the transparent canvas.
+Change that gradient to change the room. Keep its edges near-black: the desk's back and side edges end
+abruptly, and only stay invisible because the background matches the unlit desk.
+
+**To bring the window back:** mount `<NightCity />` inside the `<Canvas>` in `RetroScene.tsx` (import it
+from `./NightCity`), set `.retro-page { background: #141219 }` (= `ROOM_COLOR`) again, and add back some
+cool light from the window (the old setup is in this file's git history and in DECISIONS.md).
+
+**Where (NightCity):** [NightCity.tsx](../src/retro/scene/NightCity.tsx): `WINDOW` (opening), `WALL_Z`, `LAYERS` (depth `z`, size, seed, density, colours, haze), `LANDMARKS` (each tower's `z`, world-unit `bounds` and `paint` function), `skyTexture` (gradient, stars).
 **Could break:** `ROOM_COLOR` must match `.retro-page { background }` in `retro.css` or a seam appears when orbiting. Landmark positions were tuned so they show through the window panes in the default view (CONFIRMED comment); moving the camera may require re-tuning. Changing a `seed` changes the whole skyline.
 **Test:** orbit to every limit and look through the window; check edges of the skyline layers never show.
 

@@ -94,3 +94,8 @@ Severity: 🔴 likely user-visible · 🟠 developer-facing / could bite · 🟢
 ### 🟢 19. Contact forms have no spam protection of their own
 - **Evidence:** `sendMessage()` posts straight to EmailJS; neither form has a honeypot or CAPTCHA.
 - **Impact:** abuse is only limited by the EmailJS dashboard (allowed origins, rate limits). Worth checking those settings include the deployed origin.
+
+### 🟢 20. `NightCity.tsx` is unmounted
+- **Evidence:** since the dark-room change (2026-10-27, DECISIONS.md) nothing imports `NightCity`; the file and its `ROOM_COLOR` export remain.
+- **Impact:** none at runtime (it isn't bundled into the scene); it's ~430 lines that can drift out of date.
+- **Investigate:** once the owner settles on the look, either mount it again or delete it.
