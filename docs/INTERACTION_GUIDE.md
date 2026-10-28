@@ -26,6 +26,7 @@ Contents:
 | Click / tap the computer or its screen | R3F `onClick` on the same group (a tap fires `click` too) | zoom in (`zoomed = true`) |
 | "Turn on the computer" button | HUD `<button>` | zoom in (keyboard-accessible alternative) |
 | "Power off" button / taskbar Power off / `Esc` | HUD, taskbar, `window` keydown, desktop keydown | zoom out |
+| "Lights" (light switch icon) | HUD button, `aria-pressed` toggle | switches the room lamp on/off (`lightsOn`, off by default): dark room lit only by the screen ↔ warm, brightly lit room. Instant, like a real switch; not saved between visits. Hidden behind the phone full-screen desktop while zoomed in. |
 | "2D mode" | HUD button | switch to the flat desktop |
 | Clicks, typing, drags *on the screen* | the DOM desktop (normal React events) | windows, apps, terminal (only once `active`) |
 | Same, on a small viewport (< 900×600) | the full-screen `.retro-flatscreen` desktop over the canvas, not the glass | same apps, with native touch scrolling; its taskbar "Power off" / Esc zoom out |
@@ -292,6 +293,7 @@ the page keyboard- and screen-reader-accessible.
 |---|---|---|---|
 | `zoomed` (intent) | React `useState` | `RetroScene` | HUD, CameraRig, Esc listener, hover guard |
 | `active` (arrived) | React `useState` | `RetroScene` | ScreenSlot/Desktop, ProceduralComputer LEDs, screen glow lights |
+| `lightsOn` (light switch) | React `useState`, default `false` | `RetroScene` | picks `ROOM_LIGHTING.dark`/`.lit` (light intensities, environment, halo), `.retro-page--lit` background, the switch's `aria-pressed` |
 | camera phase, goal, returnTo | refs | `CameraRig` | CameraRig's `useFrame` |
 | orbit angles, damping, target | inside the OrbitControls instance | drei / three-stdlib | camera, CameraRig (`controls.target`) |
 | hover | CSS class on the container | `RetroScene` (`setHovering`) | CSS |

@@ -19,6 +19,18 @@ RectAreaLightUniformsLib.init();
  *  is lit by what's actually on the screen. Both lights brighten a little while the screen is on (zoomed in). */
 const SCREEN_GLOW = { color: "#9fd1bb", area: 0.9, point: 1.4, onBoost: 1.15 };
 
+/**
+ * Room lighting for each position of the HUD light switch.
+ * - dark (default): lights off, the room is lit only by the screen.
+ * - lit: a warm lamp fills the room; the screen still glows but no longer carries the scene.
+ * `glow` scales both screen lights, `halo` is the ScreenHalo opacity.
+ */
+const ROOM_LIGHTING = {
+  dark: { ambient: { color: SCREEN_GLOW.color, intensity: 0.03 }, lamp: 0, rim: 0.08, glow: 1, env: 0.12, halo: 0.35 },
+  lit: { ambient: { color: "#ffd2a0", intensity: 0.45 }, lamp: 1.4, rim: 0.15, glow: 0.7, env: 0.45, halo: 0.12 },
+};
+const LAMP_COLOR = "#ffc98f";
+
 const FOV = 35;
 const IDLE_TARGET = new Vector3(0, 0.95, 0.35);
 const IDLE_TARGET_ARRAY = IDLE_TARGET.toArray();
@@ -55,6 +67,10 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
   // and is what makes the screen interactive.
   const [zoomed, setZoomed] = useState(false);
   const [active, setActive] = useState(false);
+  // The HUD light switch. Off by default: the dark room lit only by the screen.
+  const [lightsOn, setLightsOn] = useState(false);
+  const room = lightsOn ? ROOM_LIGHTING.lit : ROOM_LIGHTING.dark;
+  const glowScale = room.glow * (active ? SCREEN_GLOW.onBoost : 1);
   const initialCamera = useMemo(() => idleCameraPosition(window.innerWidth / window.innerHeight), []);
   // Too small to read the 800×600 desktop on the glass (phones): once the camera arrives, the
   // desktop powers on full-screen instead, as a regular 2D DOM layer (readable, touch-scrollable).
@@ -109,13 +125,18 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
   };
 
   return (
-    <main className="retro-page">
+    <main className={lightsOn ? "retro-page retro-page--lit" : "retro-page"}>
       <h1 className="sr-only">Linh Le — portfolio</h1>
       <div className="retro-hud retro-hud--top">
         <span className="retro-hud__brand">
           LINH LE<span className="retro-hud__brand-extra"> · PORTFOLIO</span>
         </span>
         <div className="retro-hud__actions">
+          {/* Constant label + aria-pressed: screen readers announce "Lights, toggle button, pressed/not pressed". */}
+          <button type="button" className="retro-btn" aria-pressed={lightsOn} onClick={() => setLightsOn((on) => !on)}>
+            <span className="retro-switch" aria-hidden="true" />
+            Lights
+          </button>
           {zoomed && (
             <button type="button" className="retro-btn" onClick={zoomOut}>
               Exit <span className="retro-hud__key">Esc</span>
@@ -142,18 +163,22 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             });
           }}
         >
-          {/* Dark room lit only by the monitor. Every light source sits on the glass, so faces turned toward the
-              screen catch light and faces turned away (or level with it, like the bezel front) stay dark. */}
-          <ambientLight intensity={0.03} color={SCREEN_GLOW.color} />
+          {/* Lights off, the room is lit only by the monitor: every screen light sits on the glass, so faces turned
+              toward the screen catch light and faces turned away (or level with it, like the bezel front) stay dark.
+              Every light stays mounted in both modes and only its intensity changes: adding or removing a light
+              makes three.js recompile every material's shader, which would stall the switch. */}
+          <ambientLight intensity={room.ambient.intensity} color={room.ambient.color} />
+          {/* The room lamp, front-left above the desk (off in dark mode). */}
+          <directionalLight position={[-3, 5, 3.5]} intensity={room.lamp} color={LAMP_COLOR} />
           {/* Faint back rim so the computer's silhouette doesn't dissolve into the dark. */}
-          <directionalLight position={[1.5, 4, -5]} intensity={0.08} color="#8f9cc4" />
+          <directionalLight position={[1.5, 4, -5]} intensity={room.rim} color="#8f9cc4" />
           {/* The glass as a glowing panel (lights emit along -Z, hence the half turn to face out of the screen). */}
           <rectAreaLight
             position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1], ACTIVE_SCREEN.position[2] + 0.02]}
             rotation={[ACTIVE_SCREEN.rotation[0], ACTIVE_SCREEN.rotation[1] + Math.PI, ACTIVE_SCREEN.rotation[2]]}
             width={ACTIVE_SCREEN.width}
             height={ACTIVE_SCREEN.height}
-            intensity={active ? SCREEN_GLOW.area * SCREEN_GLOW.onBoost : SCREEN_GLOW.area}
+            intensity={SCREEN_GLOW.area * glowScale}
             color={SCREEN_GLOW.color}
           />
           {/* Just in front of the glass: gives the falloff with distance (keyboard bright, plant dim) the area light
@@ -161,12 +186,13 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
               front face (z = 0.6) so that face stays in shadow. */}
           <pointLight
             position={[ACTIVE_SCREEN.position[0], ACTIVE_SCREEN.position[1] - 0.1, ACTIVE_SCREEN.position[2] + 0.2]}
-            intensity={active ? SCREEN_GLOW.point * SCREEN_GLOW.onBoost : SCREEN_GLOW.point}
+            intensity={SCREEN_GLOW.point * glowScale}
             distance={3.6}
             color={SCREEN_GLOW.color}
           />
-          {/* Reflections only: the one bright thing in the room is the screen, so that's what plastic reflects. */}
-          <Environment resolution={64} frames={1} environmentIntensity={0.12}>
+          {/* Reflections only. In the dark the screen is the one bright thing plastic could reflect; with the lights
+              on, the lamp shows up too. `frames={1}` renders the map once, so `key` re-renders it on each switch. */}
+          <Environment key={lightsOn ? "lit" : "dark"} resolution={64} frames={1} environmentIntensity={room.env}>
             <Lightformer
               form="rect"
               intensity={2}
@@ -174,8 +200,9 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
               scale={[ACTIVE_SCREEN.width, ACTIVE_SCREEN.height, 1]}
               color={SCREEN_GLOW.color}
             />
+            {lightsOn && <Lightformer form="rect" intensity={2} position={[-3, 5, 3.5]} scale={[4, 2, 1]} color={LAMP_COLOR} />}
           </Environment>
-          <ScreenHalo screen={ACTIVE_SCREEN} color={SCREEN_GLOW.color} opacity={active ? 0.3 : 0.35} />
+          <ScreenHalo screen={ACTIVE_SCREEN} color={SCREEN_GLOW.color} opacity={room.halo * (active ? 0.85 : 1)} />
 
           <group
             onClick={onComputerClick}

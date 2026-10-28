@@ -651,12 +651,23 @@ The comment states the intent: *"Dark room lit only by the monitor: the screen i
 (Since 2026-10-27. Before that it was a night room with a desk lamp and city light through a window; see
 [DECISIONS.md](DECISIONS.md#decision-dark-room-lit-only-by-the-screen).)
 
-| Light | Position | Colour | Intensity | Role |
-|---|---|---|---|---|
-| ambient | — | `SCREEN_GLOW.color` | 0.03 | keeps the darkest faces from being pure black |
-| directional | (1.5, 4, −5) behind-right-above | dusty blue `#8f9cc4` | 0.08 | faint rim so the silhouette separates from the dark |
-| rect area | on the glass, same size as `ACTIVE_SCREEN` | `SCREEN_GLOW.color` | `SCREEN_GLOW.area` (×`onBoost` when active) | **key light**: the screen itself |
-| point | 0.1 below and 0.2 in front of the screen centre | `SCREEN_GLOW.color` | `SCREEN_GLOW.point` (×`onBoost` when active) | falloff with distance, `distance` 3.6 |
+There are two lighting modes, chosen by the HUD **"Lights"** switch (`lightsOn` state, off by default).
+Their numbers live in `ROOM_LIGHTING.dark` and `ROOM_LIGHTING.lit` at the top of `RetroScene.tsx`:
+
+| Light | Position | Colour | Dark (default) | Lights on | Role |
+|---|---|---|---|---|---|
+| ambient | — | dark: `SCREEN_GLOW.color`; lit: warm `#ffd2a0` | 0.03 | 0.45 | base level for faces no light reaches |
+| directional "lamp" | (−3, 5, 3.5) front-left-above | warm `LAMP_COLOR` `#ffc98f` | 0 (off) | 1.4 | the room lamp: key light when on |
+| directional rim | (1.5, 4, −5) behind-right-above | dusty blue `#8f9cc4` | 0.08 | 0.15 | separates the silhouette from the background |
+| rect area | on the glass, same size as `ACTIVE_SCREEN` | `SCREEN_GLOW.color` | `SCREEN_GLOW.area` × 1 | × 0.7 | the screen itself (key light in the dark) |
+| point | 0.1 below and 0.2 in front of the screen centre | `SCREEN_GLOW.color` | `SCREEN_GLOW.point` × 1 | × 0.7 | falloff with distance, `distance` 3.6 |
+
+Both screen lights also get ×`SCREEN_GLOW.onBoost` (1.15) while the screen is active. With the lights on,
+the environment gets a second, warm `Lightformer` where the lamp is (`environmentIntensity` 0.12 → 0.45),
+the halo drops to opacity 0.12 (glare is barely visible in a lit room), and the page background switches to
+a warm brown (`.retro-page--lit` in `retro.css`). The switch is instant, like a real light switch.
+
+The rest of this section describes the dark mode, which is the harder one to get right.
 
 All the glow numbers live in one constant, `SCREEN_GLOW`, at the top of `RetroScene.tsx`. The colour
 (`#9fd1bb`, a soft teal-green) is taken from the desktop itself (`--r-desk`, lifted toward the lit
@@ -687,6 +698,26 @@ into the dark around the bezel. See the concept below.
 **Background:** there is no wall or room geometry. The canvas is transparent (`alpha: true`), so
 everything not covered by a mesh shows the `.retro-page` CSS background: near-black with a faint teal
 radial haze in the middle (`retro.css`), which reads as the screen's light in the air.
+
+### Concept: switching lights without a shader recompile
+
+**What:** the light switch never adds or removes a light. The lamp `directionalLight` is always in the
+scene; dark mode just sets its intensity to 0.
+
+**Why:** three.js builds each material's GPU program (shader) for a *specific number and kind of lights*.
+If you add or remove a light (in React terms: conditionally render `{lightsOn && <directionalLight/>}`),
+every lit material has to be recompiled on the next frame. That's a visible stall, from tens of ms to
+seconds on weak GPUs, right when the visitor clicks. Changing an intensity is just a new number
+(a "uniform") sent to the existing program, so it's free.
+
+**How / where:** in [RetroScene.tsx](../src/retro/scene/RetroScene.tsx), every light's `intensity` reads from
+`room` (= `ROOM_LIGHTING.dark` or `.lit`). The one exception is the second `Lightformer`, which *is* conditional:
+it lives inside `<Environment>`, a separate little scene rendered once into the environment map (`frames={1}`).
+`key={lightsOn ? "lit" : "dark"}` remounts the Environment so that map is re-rendered on each switch. That's a single tiny 64-px render.
+
+**Mental model:** a light at intensity 0 is a bulb that's switched off, not one that's been unscrewed.
+
+**Related:** `frameloop="demand"` (§8, §15): changing props re-renders once automatically, so no `invalidate()` is needed here.
 
 ### Concept: fake bloom with an additive halo plane
 

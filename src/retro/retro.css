@@ -914,6 +914,12 @@ html.retro-cursor .retro-scene.is-hovering {
   user-select: none;
 }
 
+/* Lights on (HUD light switch, ROOM_LIGHTING.lit in RetroScene.tsx): the room glows warm instead.
+   Switches instantly, like a real light switch. */
+.retro-page--lit {
+  background: radial-gradient(ellipse 70% 65% at 45% 35%, #4a3423 0%, #2a1c12 55%, #170f0a 100%);
+}
+
 .retro-window__body {
   user-select: text;
 }
@@ -1030,6 +1036,31 @@ html.retro-cursor .retro-scene.is-hovering {
 .retro-hud .retro-btn {
   font-family: var(--r-pixel);
   font-size: 19px;
+}
+
+/* Tiny wall light switch in the "Lights" HUD button: a plate with a toggle, down = off, up = on. */
+.retro-switch {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 16px;
+  border: 1px solid var(--r-ink);
+  background: var(--r-hi);
+}
+
+.retro-switch::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 5px;
+  background: var(--r-ink);
+}
+
+[aria-pressed="true"] > .retro-switch::after {
+  top: 2px;
+  bottom: auto;
 }
 
 .retro-hud .retro-btn--primary {

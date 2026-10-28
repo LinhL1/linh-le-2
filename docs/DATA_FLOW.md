@@ -78,6 +78,9 @@ graph LR
     A --> LED["LED colour/emissive"]
     A --> PL["screen glow intensity<br/>(rectAreaLight + pointLight)"]
     Z --> HUD["HUD buttons"]
+    SW["'Lights' HUD switch"] --> L["lightsOn"]
+    L --> RL["ROOM_LIGHTING.dark / .lit<br/>light intensities, environment, halo"]
+    L --> BG[".retro-page--lit<br/>CSS background"]
 ```
 
 Data only flows **down** as props and **up** through callbacks (`onSettled`, `onPowerOff`,

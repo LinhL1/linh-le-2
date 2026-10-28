@@ -465,3 +465,35 @@ Changes:
 Active (experimental, the owner is exploring the look). `NightCity.tsx` is kept so the window can come back
 (see [CHANGE_GUIDE.md → environment](CHANGE_GUIDE.md#modify-the-environment-dark-room-or-windowskylinewall)).
 Going back to a warm glow is a one-line change to `SCREEN_GLOW.color` (plus the `.retro-page` haze).
+
+---
+
+## Decision: Light switch: dark room by default, warm lit room on demand
+
+### Context
+After the dark, screen-lit room (above), the owner asked (2026-10-27): "Make the current version the dark
+mode, add a light switch and have light mode be a warm brighter glow in the room. By default it should be dark mode."
+
+### Decision
+- A "Lights" toggle button in the top HUD (`aria-pressed`, with a small CSS wall-switch icon `.retro-switch`)
+  flips `lightsOn` state in `RetroScene`. Default off.
+- `ROOM_LIGHTING.dark` is the previous look, unchanged. `ROOM_LIGHTING.lit` adds a warm lamp directional light
+  (`#ffc98f`, 1.4, front-left above), warm ambient 0.45, a warm `Lightformer` in the environment
+  (`environmentIntensity` 0.45), screen lights at 0.7×, halo at 0.12, and a warm brown page background (`.retro-page--lit`).
+- All lights stay mounted in both modes; only intensities change, so switching never recompiles shaders.
+- The switch is instant (no fade), like a real light switch, and isn't saved: every visit starts in the dark.
+
+### Why
+Owner's request. Not persisting it keeps "dark by default" true for every visit (inferred reading of the request);
+saving it in `localStorage` would be a small change if wanted.
+
+### Alternatives
+A 3D switch on a wall (there's no wall in the dark room, and a HUD button is keyboard-accessible for free);
+a fade between modes (needs per-frame `useFrame` + `invalidate()` work; a real switch doesn't fade).
+
+### Tradeoffs
++ Two moods from one scene; cheap to switch; keyboard and screen-reader accessible.
+− Two lighting presets to keep tuned; any new light must be added to both.
+
+### Current Status
+Active.

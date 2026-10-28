@@ -27,8 +27,9 @@ graph TD
 RetroScene
 └─ <Canvas eventSource={.retro-scene div} eventPrefix="client" frameloop="demand" dpr={[1,1.75]}
            camera={{fov:35, near:0.1, far:90}} gl={{antialias, alpha:true, powerPreference:"high-performance"}}>
-   ├─ ambientLight · directionalLight (faint rim) · rectAreaLight + pointLight (screen glow, on the glass, SCREEN_GLOW)
-   ├─ Environment (Lightformer ×1 at the screen, rendered once into a 64px cube map → scene.environment)
+   ├─ ambientLight · directionalLight (room lamp, 0 when lights off) · directionalLight (faint rim)
+   │   · rectAreaLight + pointLight (screen glow, on the glass, SCREEN_GLOW); intensities from ROOM_LIGHTING[lightsOn]
+   ├─ Environment key={dark|lit} (Lightformer at the screen, + one at the lamp when lit; rendered once → scene.environment)
    ├─ ScreenHalo                          additive glow plane around the glass (fake bloom), not interactive
    │   (no room: NightCity.tsx exists but is not mounted; the transparent canvas shows the .retro-page background)
    ├─ <group onClick onPointerOver onPointerOut>   ← the only interactive object
