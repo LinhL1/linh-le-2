@@ -465,6 +465,7 @@ Changes:
 Active (experimental, the owner is exploring the look). `NightCity.tsx` is kept so the window can come back
 (see [CHANGE_GUIDE.md → environment](CHANGE_GUIDE.md#modify-the-environment-dark-room-or-windowskylinewall)).
 Going back to a warm glow is a one-line change to `SCREEN_GLOW.color` (plus the `.retro-page` haze).
+The glow colour has since changed from teal to cool white with the Light Tech palette (decision below).
 
 ---
 
@@ -494,6 +495,46 @@ a fade between modes (needs per-frame `useFrame` + `invalidate()` work; a real s
 ### Tradeoffs
 + Two moods from one scene; cheap to switch; keyboard and screen-reader accessible.
 − Two lighting presets to keep tuned; any new light must be added to both.
+
+### Current Status
+Active.
+
+---
+
+## Decision: "Light Tech" palette for the retro desktop
+
+### Context
+The desktop used a dark sage/teal wallpaper, beige window chrome, green title bars, butter-yellow accents
+and a black CRT terminal with green phosphor text. The owner asked (2026-11-09) to "experiment and try out a
+light retro tech color theme" while keeping it easy to return to the old design. A temporary classic/Light Tech
+switch was built on branch `theme-light-tech`; after comparing them the owner chose (2026-11-10): "I love the
+new light retro color theme lets stick with that and clear out the old one."
+
+### Decision
+- The `--r-*` tokens in `retro.css` now hold the Light Tech palette: pale graph-paper desktop (`--r-desk`
+  `#eef1f4` with a 16px cobalt grid), platinum chrome (`--r-face` `#dde1e6`), cobalt title bars (`--r-title`
+  `#2448c8`), a signal-orange accent (`--r-accent` `#e4510f`) and a green LCD (`--r-lcd*`) for the terminal,
+  the About "security" panel and tags.
+- Tokens named after the old colours were renamed: `--r-butter` → `--r-accent`, `--r-phosphor` → `--r-lcd-ink`,
+  `--r-term-bg` → `--r-lcd`; `--r-plum` was dropped (in-window focus uses the accent).
+- Colours that only worked on a dark wallpaper (white icon labels, black text shadows, the dark idle overlay,
+  heavy scanlines) became dark-on-light equivalents.
+- The 3D screen glow follows the screen: `SCREEN_GLOW.color` `#9fd1bb` → `#d6e2ff`, and `area`/`point` ×1.15
+  (a pale screen is brighter); the `.retro-page` room haze went from teal to cool blue.
+- The temporary switcher (`theme.ts`, `themes/light-tech.css`, `ThemeToggle.tsx`, `data-retro-theme`) was removed.
+
+### Why
+The owner's choice after comparing both palettes side by side. The previous palette remains in git history
+(branch `design-v2`).
+
+### Alternatives
+Keeping both palettes behind a permanent theme toggle (more to maintain: every hardcoded colour in two places,
+plus an extra HUD/taskbar button).
+
+### Tradeoffs
++ One palette, all in `retro.css`, no runtime theme machinery.
+− The pixel icons (`pixelIcons.ts`), the BIOS boot screen (`Loader.css`) and the beige 3D computer keep their
+  own colours; they weren't part of the palette change.
 
 ### Current Status
 Active.

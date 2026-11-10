@@ -4,7 +4,7 @@
 
 The site is a **static, frontend-only single-page app** (Vite + React 18 + TypeScript). It has two
 "faces" that share the same content files. At `/`, a **3D scene** (three.js through React Three
-Fiber) shows a beige 90s computer on a desk in a dark room, lit only by the dim teal-green glow of its screen. Clicking the
+Fiber) shows a beige 90s computer on a desk in a dark room, lit only by the dim cool-white glow of its screen. Clicking the
 monitor flies the camera in, and the monitor shows a **real, interactive React desktop ("LINH-OS")**
 with draggable windows and a terminal. Phones get the 3D desk too, but once zoomed in the desktop
 switches on full-screen (readable) instead of on the glass. Without WebGL or with reduced motion,

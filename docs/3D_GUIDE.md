@@ -670,8 +670,9 @@ a warm brown (`.retro-page--lit` in `retro.css`). The switch is instant, like a 
 The rest of this section describes the dark mode, which is the harder one to get right.
 
 All the glow numbers live in one constant, `SCREEN_GLOW`, at the top of `RetroScene.tsx`. The colour
-(`#9fd1bb`, a soft teal-green) is taken from the desktop itself (`--r-desk`, lifted toward the lit
-wallpaper), so the room is lit by what's actually on the screen.
+(`#d6e2ff`, a cool white) is taken from the desktop itself (the pale `--r-desk` graph paper, tinted toward
+its cobalt grid), so the room is lit by what's actually on the screen. A pale desktop is a brighter screen
+than the old dark-teal one, so `area`/`point` are 1.15× what they were (0.9 → 1.035, 1.4 → 1.61).
 
 **The rule that makes it read as "lit by the screen":** every light source sits *on or just in front of the glass*.
 Then the lighting follows the dot product from §3: faces turned toward the screen (the keyboard, the base
@@ -696,7 +697,7 @@ strong one would undo the darkness.
 into the dark around the bezel. See the concept below.
 
 **Background:** there is no wall or room geometry. The canvas is transparent (`alpha: true`), so
-everything not covered by a mesh shows the `.retro-page` CSS background: near-black with a faint teal
+everything not covered by a mesh shows the `.retro-page` CSS background: near-black with a faint cool-blue
 radial haze in the middle (`retro.css`), which reads as the screen's light in the air.
 
 ### Concept: switching lights without a shader recompile
@@ -765,7 +766,7 @@ turned half a circle around Y (`rotation y + π`).
 **Example:**
 ```tsx
 RectAreaLightUniformsLib.init(); // once, at module level
-<rectAreaLight position={[0, 1.36, 0.38]} rotation={[0, Math.PI, 0]} width={1.28} height={0.96} intensity={0.9} color="#9fd1bb" />
+<rectAreaLight position={[0, 1.36, 0.38]} rotation={[0, Math.PI, 0]} width={1.28} height={0.96} intensity={1.035} color="#d6e2ff" />
 ```
 
 **Limits:** no shadows; only affects `MeshStandardMaterial`/`MeshPhysicalMaterial` (fine here,
