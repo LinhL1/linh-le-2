@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { APP_BY_ID } from "./apps";
-import { PixelIcon } from "./icons";
-import type { AppId, WindowState } from "./useDesktop";
+import { PixelIcon } from "./icons";import type { AppId, WindowState } from "./useDesktop";
 
 interface TaskbarProps {
   windows: WindowState[];

@@ -15,9 +15,9 @@ import { ScreenSlot } from "./ScreenSlot";
 // RectAreaLight needs its lookup tables uploaded once before any material renders with it.
 RectAreaLightUniformsLib.init();
 
-/** Light thrown by the monitor: the desktop's teal-green (--r-desk, lifted toward the lit wallpaper) so the room
- *  is lit by what's actually on the screen. Both lights brighten a little while the screen is on (zoomed in). */
-const SCREEN_GLOW = { color: "#9fd1bb", area: 0.9, point: 1.4, onBoost: 1.15 };
+/** Light thrown by the monitor: the pale desktop's cool white (--r-desk, tinted toward its cobalt grid) so the
+ *  room is lit by what's actually on the screen. Both lights brighten a little while the screen is on (zoomed in). */
+const SCREEN_GLOW = { color: "#d6e2ff", area: 1.035, point: 1.61, onBoost: 1.15 };
 
 /**
  * Room lighting for each position of the HUD light switch.
@@ -202,7 +202,7 @@ export default function RetroScene({ navigate, onSwitchTo2d, onFailure }: RetroS
             />
             {lightsOn && <Lightformer form="rect" intensity={2} position={[-3, 5, 3.5]} scale={[4, 2, 1]} color={LAMP_COLOR} />}
           </Environment>
-          <ScreenHalo screen={ACTIVE_SCREEN} color={SCREEN_GLOW.color} opacity={room.halo * (active ? 0.85 : 1)} />
+          <ScreenHalo screen={ACTIVE_SCREEN} color={SCREEN_GLOW.color}opacity={room.halo * (active ? 0.85 : 1)} />
 
           <group
             onClick={onComputerClick}

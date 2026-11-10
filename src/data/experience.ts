@@ -12,7 +12,7 @@ export const experiences: ExperienceItem[] = [
     company: "EcoServant",
     period: "OCT 2026 — PRESENT",
     description:
-      "",
+      "Contribute to the development and improvement of EcoServants' Outcome Kanban, a WordPress-based project management and learning platform. Support feature testing, responsive UI improvements, accessibility, and end-to-end quality assurance to create a more intuitive and reliable user experience.",
   },
   {
     role: "Systems Automation/Software Development Intern",

@@ -37,7 +37,7 @@ export const events: CommunityEvent[] = [
     affiliation: "Her AI Studio",
     location: "Chestnut Hill, MA",
     description:
-      "Contribute youth perspectives to Her AI Studio’s AI education initiatives, helping shape programs, curriculum, events, outreach, community, and content. Collaborate with the organization’s leadership and fellow Youth Board members to ensure the experiences and needs of young women are meaningfully represented in what Her AI Studio builds.",
+      "I lead the Boston Chapters and serve as a Youth Board Member, helping guide the organization's strategic pivot toward engaging college students and young professionals. I support community outreach, chapter development, and event planning and coordination.",
     image: heraistudio,
     imageAlt: "Her AI studio logo",
     postmarkInk: "dark",

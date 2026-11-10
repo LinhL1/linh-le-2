@@ -66,7 +66,7 @@ the `paintWindows` options inside each `LANDMARKS[].paint` (more `cols`/`rows` =
 - one part only → give that mesh its own `<meshStandardMaterial color="…" />` child instead of the shared `material={mats.beige}`;
 - shinier → lower `roughness`; glow → `emissive` + `emissiveIntensity`.
 **Could break:** materials created with `new` in a memo must stay in the `useDisposable` object (or have a cleanup) to be freed. Night-city materials are `MeshBasicMaterial` with `toneMapped:false`; switching them to Standard makes them react to lights and tone mapping (they'll go dark).
-**Test:** look in both idle and zoomed. The room is lit almost only by the screen's teal-green glow, so colours shift toward it and anything far from the screen goes dark; check a new colour under that light, not on paper.
+**Test:** look in both idle and zoomed. The room is lit almost only by the screen's cool-white glow, so colours shift toward it and anything far from the screen goes dark; check a new colour under that light, not on paper.
 
 ## Add a new 3D object
 
@@ -163,7 +163,7 @@ cost GPU constantly; respect `reducedMotion` (available from `useRetroMode`).
 ## Modify the environment (dark room, or window/skyline/wall)
 
 **Today (since 2026-10-27):** there is no room geometry. The dark around the desk is the `.retro-page`
-`background` in `retro.css` (near-black with a faint teal radial haze, matching the screen glow), seen through the transparent canvas.
+`background` in `retro.css` (near-black with a faint cool-blue radial haze, matching the screen glow), seen through the transparent canvas.
 Change that gradient to change the room. Keep its edges near-black: the desk's back and side edges end
 abruptly, and only stay invisible because the background matches the unlit desk.
 
@@ -191,6 +191,18 @@ cool light from the window (the old setup is in this file's git history and in D
 - **Desktop windows:** add an action to `DesktopAction` and a `case` in `desktopReducer` ([useDesktop.ts](../src/retro/desktop/useDesktop.ts)); add a test in `desktopState.test.ts`.
 - **3D scene state:** `RetroScene` `useState`. Ask "does this change per frame?" If yes, use a ref + `useFrame`, not state.
 - **Mode (3D/2D):** `decideRetroMode` is the policy; update `retroMode.test.ts` with any rule change.
+
+## Change the desktop colours
+
+The desktop palette ("Light Tech": graph-paper wallpaper, platinum chrome, cobalt title bars, signal-orange
+accents, green-LCD terminal) is the `--r-*` token block at the top of [retro.css](../src/retro/retro.css).
+
+- **Most changes:** edit a token. `--r-accent` = focus rings, idle overlay, HUD brand, boot text; `--r-lcd*` = terminal, the About "security" panel and the tags.
+- **A few colours are written inline** because they're tints (rgba) of a token: the wallpaper grid and glow, window drop shadow, CRT scanlines, the 3D screen vignette and the `.retro-page` room haze. Search `retro.css` for `rgba(` and keep them in the same hue.
+- **Keep the room glow in sync:** if the wallpaper changes hue, change `SCREEN_GLOW.color` in `RetroScene.tsx` (and the `.retro-page` haze) so the screen still lights the room in its own colour.
+- **Not covered by the tokens:** the pixel-icon art (`PALETTE` in `pixelIcons.ts`), the BIOS boot screen (`Loader.css`), and the 3D computer's materials (`PALETTE` in `ProceduralComputer.tsx`).
+
+**Test:** 2D (`/?mode=2d`) with About, Projects and Terminal open, then 3D idle and zoomed in, with the lights off and on. Check that text in the LCD panels and the focus ring are still readable.
 
 ## Add a desktop app
 
